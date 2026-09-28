@@ -1,26 +1,27 @@
 [
   {
-    "id": "xauusd-2026-01-15-001",
-    "published_at": "2026-01-15T07:00:00Z",
+    "id": "xauusd-2026-09-28-001",
+    "published_at": "2026-09-28T10:30:00Z",
     "pair": "XAUUSD",
     "direction": "BUY",
-    "entry": 2401.5,
-    "stop_loss": 2386.5,
-    "take_profit": 2428.0,
-    "max_lot_size": 0.05,
-    "volatility_range": "±38 pips (2386-2428)",
+    "entry": 4138.5,
+    "stop_loss": 4120.5,
+    "take_profit": 4172.0,
+    "max_lot_size": 0.04,
+    "volatility_range": "±52 pips (4094-4198)",
     "status": "active",
+    "reference_price": 4146.3,
     "smc_overlay": {
-      "bsl_zone": { "low": 2430.0, "high": 2433.5 },
-      "ssl_zone": { "low": 2396.0, "high": 2398.5 },
+      "bsl_zone": { "low": 4168.0, "high": 4171.5 },
+      "ssl_zone": { "low": 4126.0, "high": 4129.5 },
       "order_blocks": [
-        { "type": "bullish", "low": 2400.0, "high": 2403.0 }
+        { "type": "bullish", "low": 4131.0, "high": 4136.0 }
       ],
       "fvgs": [
-        { "low": 2405.0, "high": 2408.0 }
+        { "low": 4142.0, "high": 4146.0 }
       ]
     },
-    "content_en": "Fundamental Sentiment: FOMC minutes today 18:00 UTC — dovish hold largely priced in; upside surprise risk on gold. Retail trap filtered: pre-London dip was a liquidity grab.\n\nTechnical/SMC Breakdown: SSL swept at 2398 (previous week low) with 4H ChoCH. Unmitigated bullish Order Block 2400-2403, FVG at 2405-2408. BSL rests at 2432.\n\nHistorical Volatility/Max Spike Projection: recent Daily max spike 38 pips; projected boundaries 2386-2428 if a news spike hits.\n\nRisk & Money Management: balance $500, risk 1.5% = $7.50, SL 15 pips → max 0.05 lots including spike buffer. Given your account balance and current volatility, do not exceed 0.05 lot size.\n\nActionable Signal: BUY 2401.5 | SL 2386.5 | TP 2428 (inside projected upper boundary).",
-    "content_bn": "ফান্ডামেন্টাল সেন্টিমেন্ট: আজ 18:00 UTC-তে FOMC মিনিট — ডভিশ হোল মূলত প্রাইস-ইন; গোল্ডে উপরের দিকে চমকের ঝুঁকি। রিটেইল ট্র্যাপ ফিল্টার করা হয়েছে: প্রি-লন্ডন ডিপ ছিল লিকুইডিটি গ্র্যাব।\n\nটেকনিক্যাল/SMC বিশ্লেষণ: 2398-এ SSL সুইপ (আগের সপ্তাহের লো) এবং 4H ChoCH। আনমিটিগেটেড বুলিশ অর্ডার ব্লক 2400-2403, FVG 2405-2408। BSL রয়েছে 2432-এ।\n\nহিস্টরিক্যাল ভলাটিলিটি/ম্যাক্স স্পাইক প্রজেকশন: সাম্প্রতিক ডেইলি ম্যাক্স স্পাইক 38 পিপস; নিউজ স্পাইক এলে সম্ভাব্য সীমা 2386-2428।\n\nঝুঁকি ও মানি ম্যানেজমেন্ট: ব্যালেন্স $500, ঝুঁকি 1.5% = $7.50, SL 15 পিপস → স্পাইক বাফারসহ সর্বোচ্চ 0.05 লট। আপনার অ্যাকাউন্ট ব্যালেন্স ও বর্তমান ভলাটিলিটি বিবেচনায়, 0.05 লট সাইজের বেশি ট্রেড করবেন না।\n\nঅ্যাকশনেবল সিগন্যাল: BUY 2401.5 | SL 2386.5 | TP 2428 (প্রজেক্টেড ঊর্ধ্ব সীমার মধ্যে)।"
+    "content_en": "Live Reference Price: 4146.30 (IFCMarkets, 28 Sep 2026) — all levels anchored to this live quote.\n\nFundamental Sentiment: FOMC minutes today 18:00 UTC — dovish hold largely priced in; upside surprise risk on gold. Retail trap filtered: the dip into 4126-4129 was a liquidity grab, not a trend break.\n\nTechnical/SMC Breakdown: SSL swept at 4126-4129.5 (previous day low) with a 4H ChoCH back above 4136. Unmitigated bullish Order Block 4131-4136, FVG 4142-4146 acting as support confluence. BSL rests at 4168-4171.5 (equal highs).\n\nHistorical Volatility/Max Spike Projection: recent Daily max spike 52 pips; projected boundaries 4094-4198 if a news spike hits. TP sits inside the projected upper boundary.\n\nRisk & Money Management: balance $500, risk 1.5% = $7.50, SL 18 pips → max 0.04 lots including spike buffer. Given your account balance and current volatility, do not exceed 0.04 lot size.\n\nActionable Signal: BUY 4138.5 | SL 4120.5 | TP 4172 (inside projected upper boundary 4198).",
+    "content_bn": "লাইভ রেফারেন্স প্রাইস: 4146.30 (IFCMarkets, ২৮ সেপ্টেম্বর ২০২৬) — সকল লেভেল এই লাইভ কোটের সাথে অ্যাংকর করা।\n\nফান্ডামেন্টাল সেন্টিমেন্ট: আজ 18:00 UTC-তে FOMC মিনিট — ডভিশ হোল মূলত প্রাইস-ইন; গোল্ডে উপরের দিকে চমকের ঝুঁকি। রিটেইল ট্র্যাপ ফিল্টার করা হয়েছে: 4126-4129-এ ডিপ ছিল লিকুইডিটি গ্র্যাব, ট্রেন্ড ব্রেক নয়।\n\nটেকনিক্যাল/SMC বিশ্লেষণ: 4126-4129.5-এ SSL সুইপ (আগের দিনের লো) এবং 4H ChoCH 4136-এর উপরে। আনমিটিগেটেড বুলিশ অর্ডার ব্লক 4131-4136, FVG 4142-4146 সাপোর্ট কনফ্লুয়েন্স হিসেবে। BSL রয়েছে 4168-4171.5-এ (ইকুয়াল হাইস)।\n\nহিস্টরিক্যাল ভলাটিলিটি/ম্যাক্স স্পাইক প্রজেকশন: সাম্প্রতিক ডেইলি ম্যাক্স স্পাইক 52 পিপস; নিউজ স্পাইক এলে সম্ভাব্য সীমা 4094-4198। TP প্রজেক্টেড ঊর্ধ্ব সীমার মধ্যে।\n\nঝুঁকি ও মানি ম্যানেজমেন্ট: ব্যালেন্স $500, ঝুঁকি 1.5% = $7.50, SL 18 পিপস → স্পাইক বাফারসহ সর্বোচ্চ 0.04 লট। আপনার অ্যাকাউন্ট ব্যালেন্স ও বর্তমান ভলাটিলিটি বিবেচনায়, 0.04 লট সাইজের বেশি ট্রেড করবেন না।\n\nঅ্যাকশনেবল সিগন্যাল: BUY 4138.5 | SL 4120.5 | TP 4172 (প্রজেক্টেড ঊর্ধ্ব সীমা 4198-এর মধ্যে)।"
   }
 ]

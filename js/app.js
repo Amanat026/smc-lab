@@ -1,4 +1,5 @@
 // SMC Liquidity Hunting AI Lab dashboard — TradingView live chart + bilingual signal cards + visual SMC overlay.
+// All price levels and the overlay axis are derived purely from data/signals.json — no hardcoded market prices anywhere.
 (function () {
   var STORAGE_KEY = 'smc-lang';
   var lang = localStorage.getItem(STORAGE_KEY) || 'en';
@@ -83,13 +84,12 @@
     });
   });
 
-  /* ---------- Visual SMC overlay (price-mapped zones & levels) ---------- */
+  /* ---------- Visual SMC overlay (price-mapped zones & levels, derived from signal data only) ---------- */
   function renderOverlay(signal) {
     var o = signal && signal.smc_overlay;
     if (!o) { overlay.hidden = true; return; }
 
-    // Collect all price points to compute the mapped range.
-    var prices = [signal.entry, signal.stop_loss, signal.take_profit];
+    var prices = [signal.entry, signal.stop_loss, signal.take_profit, signal.reference_price];
     function zonePrices(z) { if (z && typeof z.low === 'number' && typeof z.high === 'number') { prices.push(z.low, z.high); } }
     zonePrices(o.bsl_zone); zonePrices(o.ssl_zone);
     (o.order_blocks || []).forEach(zonePrices);
@@ -102,7 +102,7 @@
     var pad = (max - min) * 0.08 || 1;
     min -= pad; max += pad;
 
-    function pct(price) { return ((max - price) / (max - min)) * 100; } // top% position
+    function pct(price) { return ((max - price) / (max - min)) * 100; }
 
     var html = '<div class="smc-price-axis">';
     for (var i = 0; i <= 4; i++) {
@@ -152,12 +152,14 @@
       return new Date(b.published_at) - new Date(a.published_at);
     });
 
-    // Map the newest signal's overlay below the live chart.
     renderOverlay(sorted[0]);
 
     sorted.forEach(function (s) {
       var isBuy = String(s.direction).toUpperCase() === 'BUY';
       var content = lang === 'bn' ? s.content_bn : s.content_en;
+      var refLine = (typeof s.reference_price === 'number')
+        ? '<span>' + esc(t('ref_price')) + ': <strong>' + esc(s.reference_price) + '</strong></span>'
+        : '';
       var card = document.createElement('article');
       card.className = 'signal-card';
       card.innerHTML =
@@ -171,12 +173,13 @@
           '<div class="level"><div class="label">' + esc(t('take_profit')) + '</div><div class="value">' + esc(s.take_profit) + '</div></div>' +
         '</div>' +
         '<div class="meta">' +
+          refLine +
           '<span>' + esc(t('max_lot')) + ': <strong>' + esc(s.max_lot_size) + '</strong></span>' +
           '<span>' + esc(t('volatility')) + ': <strong>' + esc(s.volatility_range) + '</strong></span>' +
           '<span class="status ' + esc(s.status || '') + '">' + esc(s.status) + '</span>' +
         '</div>' +
         '<div class="content">' + esc(content) + '</div>' +
-        '<div class="published">' + esc(formatDate(s.published_at)) + '</div>';
+        '<div class="published">' + esc(t('updated')) + ': ' + esc(formatDate(s.published_at)) + '</div>';
       grid.appendChild(card);
     });
   }
