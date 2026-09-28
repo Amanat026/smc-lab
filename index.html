@@ -4,12 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Amanat's Gold Signal - Institutional Forex & Gold Signals</title>
-  <meta name="description" content="Real-time XAUUSD institutional SMC analysis across 4 daily sessions (London & New York), BSL/SSL liquidity zones, FVG, Order Blocks, and dynamic money management. Organized and Analyzed by Amanat Ullah." />
+  <meta name="description" content="Real-time XAUUSD institutional SMC analysis with Underlying Stream detection across 4 daily sessions (London & New York). Organized and Analyzed by Amanat Ullah." />
 
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Amanat's Gold Signal - Institutional Forex & Gold Signals" />
-  <meta property="og:description" content="Real-time XAUUSD institutional SMC analysis across 4 daily sessions (London & New York), BSL/SSL liquidity zones, FVG, Order Blocks, and dynamic money management. Organized and Analyzed by Amanat Ullah." />
+  <meta property="og:description" content="Real-time XAUUSD institutional SMC analysis with Underlying Stream detection across 4 daily sessions (London & New York). Organized and Analyzed by Amanat Ullah." />
   <meta property="og:url" content="https://smc-lab-eight.vercel.app" />
   <meta property="og:image" content="https://smc-lab-eight.vercel.app/assets/og-banner.svg" />
   <meta property="og:image:width" content="1200" />
@@ -19,7 +19,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Amanat's Gold Signal - Institutional Forex & Gold Signals" />
-  <meta name="twitter:description" content="Real-time XAUUSD institutional SMC analysis across 4 daily sessions (London & New York), BSL/SSL liquidity zones, FVG, Order Blocks, and dynamic money management. Organized and Analyzed by Amanat Ullah." />
+  <meta name="twitter:description" content="Real-time XAUUSD institutional SMC analysis with Underlying Stream detection across 4 daily sessions (London & New York). Organized and Analyzed by Amanat Ullah." />
   <meta name="twitter:image" content="https://smc-lab-eight.vercel.app/assets/og-banner.svg" />
   <meta name="twitter:image:alt" content="Amanat's Gold Signal — institutional XAUUSD session-based signal dashboard" />
 
@@ -69,6 +69,24 @@
   </div>
 
   <main class="container">
+    <!-- Underlying Stream panel -->
+    <section id="stream-panel" class="stream-panel" hidden>
+      <div class="stream-head">
+        <h2 class="section-heading" data-i18n="stream_heading">Underlying Stream</h2>
+        <span id="stream-confidence" class="stream-confidence"></span>
+      </div>
+      <div class="stream-body">
+        <div id="stream-indicator" class="stream-indicator">
+          <span id="stream-arrow" class="stream-arrow">▲</span>
+          <span id="stream-direction" class="stream-direction">—</span>
+        </div>
+        <div class="stream-details">
+          <p id="stream-summary" class="stream-summary"></p>
+          <ul id="stream-evidence" class="stream-evidence"></ul>
+        </div>
+      </div>
+    </section>
+
     <!-- Daily session timeline -->
     <section class="session-strip-wrap">
       <h2 class="section-heading" data-i18n="sessions_heading">Today's Sessions</h2>
