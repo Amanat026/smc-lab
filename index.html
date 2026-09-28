@@ -4,11 +4,12 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SMC Liquidity Hunting AI Lab</title>
-  <meta name="description" content="Institutional SMC Forex & Gold (XAUUSD) trade signals — live TradingView charts, bilingual English/Bengali dashboard." />
+  <meta name="description" content="Institutional SMC Forex & Gold (XAUUSD) trade signals — live TradingView charts, SMC candlestick overlay, bilingual English/Bengali dashboard." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
+  <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -47,22 +48,34 @@
   </div>
 
   <main class="container">
-    <!-- Live chart section -->
+    <!-- Chart section: tabbed Live feed / SMC candlestick map -->
     <section class="chart-section">
       <div class="chart-header">
-        <h2 class="section-heading" data-i18n="live_chart">Live XAUUSD Chart</h2>
-        <div class="tf-selector" role="group" aria-label="Timeframe">
-          <button class="tf-btn" data-tf="W" data-i18n="tf_w1">W1</button>
-          <button class="tf-btn active" data-tf="D" data-i18n="tf_d1">D1</button>
-          <button class="tf-btn" data-tf="240" data-i18n="tf_4h">4H</button>
+        <h2 class="section-heading" data-i18n="live_chart">XAUUSD Charts</h2>
+        <div class="chart-controls">
+          <div class="view-tabs" role="group" aria-label="Chart view">
+            <button class="view-tab active" data-view="live" data-i18n="tab_live">Live Feed</button>
+            <button class="view-tab" data-view="smc" data-i18n="tab_smc">SMC Map</button>
+          </div>
+          <div class="tf-selector" id="tf-selector" role="group" aria-label="Timeframe">
+            <button class="tf-btn" data-tf="W" data-i18n="tf_w1">W1</button>
+            <button class="tf-btn active" data-tf="D" data-i18n="tf_d1">D1</button>
+            <button class="tf-btn" data-tf="240" data-i18n="tf_4h">4H</button>
+          </div>
         </div>
       </div>
-      <div id="tv-chart" class="tv-chart"></div>
 
-      <!-- Visual SMC overlay panel: zones + levels mapped by price -->
-      <div id="smc-overlay" class="smc-overlay" hidden>
-        <h3 class="overlay-heading" data-i18n="smc_structure">SMC Market Structure</h3>
-        <div id="smc-map" class="smc-map" aria-live="polite"></div>
+      <!-- View 1: TradingView live institutional feed -->
+      <div id="view-live">
+        <div id="tv-chart" class="tv-chart"></div>
+      </div>
+
+      <!-- View 2: Custom candlestick chart with SMC markings -->
+      <div id="view-smc" hidden>
+        <div class="smc-chart-wrap">
+          <div id="smc-chart" class="smc-chart"></div>
+          <p id="smc-chart-empty" class="empty-state" data-i18n="no_candles" hidden>No candle data published yet.</p>
+        </div>
         <div class="smc-legend">
           <span class="legend-item"><i class="sw sw-bsl"></i><span data-i18n="legend_bsl">BSL zone</span></span>
           <span class="legend-item"><i class="sw sw-ssl"></i><span data-i18n="legend_ssl">SSL zone</span></span>
@@ -74,6 +87,34 @@
           <span class="legend-item"><i class="sw sw-tp"></i><span data-i18n="legend_tp">Take Profit</span></span>
         </div>
       </div>
+    </section>
+
+    <!-- Dynamic money management module -->
+    <section class="mm-panel">
+      <h2 class="section-heading" data-i18n="mm_heading">Money Management</h2>
+      <div class="mm-grid">
+        <label class="mm-field">
+          <span data-i18n="balance">Account Balance</span>
+          <div class="mm-input-wrap"><span class="mm-currency">$</span><input id="mm-balance" type="number" min="1" step="50" value="500" inputmode="decimal" /></div>
+        </label>
+        <label class="mm-field">
+          <span data-i18n="risk">Risk per Trade</span>
+          <div class="risk-selector" id="mm-risk" role="group" aria-label="Risk percent">
+            <button class="risk-btn active" data-risk="1">1%</button>
+            <button class="risk-btn" data-risk="1.5">1.5%</button>
+            <button class="risk-btn" data-risk="2">2%</button>
+          </div>
+        </label>
+        <div class="mm-result">
+          <span class="mm-result-label" data-i18n="max_lot_calc">Max Lot Size</span>
+          <strong id="mm-lot">—</strong>
+        </div>
+        <div class="mm-result">
+          <span class="mm-result-label" data-i18n="rr_label">Risk : Reward</span>
+          <strong id="mm-rr">—</strong>
+        </div>
+      </div>
+      <p id="mm-restriction" class="mm-restriction"></p>
     </section>
 
     <h2 class="section-heading" data-i18n="signals_heading">Latest Signals</h2>
@@ -88,6 +129,6 @@
   </footer>
 
   <script src="js/i18n.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/app.js" defer></script>
 </body>
 </html>

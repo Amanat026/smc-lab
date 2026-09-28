@@ -1,16 +1,29 @@
-// SMC Liquidity Hunting AI Lab dashboard — TradingView live chart + bilingual signal cards + visual SMC overlay.
-// All price levels and the overlay axis are derived purely from data/signals.json — no hardcoded market prices anywhere.
+// SMC Liquidity Hunting AI Lab dashboard.
+// TradingView live feed + custom lightweight-charts candlestick chart with SMC markings
+// + dynamic balance-based money management. All market data derives from data/signals.json.
 (function () {
-  var STORAGE_KEY = 'smc-lang';
-  var lang = localStorage.getItem(STORAGE_KEY) || 'en';
+  var STORAGE_LANG = 'smc-lang';
+  var STORAGE_BALANCE = 'smc-balance';
+  var STORAGE_RISK = 'smc-risk';
+
+  var lang = localStorage.getItem(STORAGE_LANG) || 'en';
   var signals = [];
   var currentTf = 'D';
+  var smcChart = null;
+  var smcCandleSeries = null;
+  var smcZoneSeries = [];
+
+  // Money management state
+  var balance = parseFloat(localStorage.getItem(STORAGE_BALANCE)) || 500;
+  var riskPct = parseFloat(localStorage.getItem(STORAGE_RISK)) || 1;
 
   var grid = document.getElementById('signals');
   var emptyState = document.getElementById('empty-state');
   var toggleBtn = document.getElementById('lang-toggle');
-  var overlay = document.getElementById('smc-overlay');
-  var smcMap = document.getElementById('smc-map');
+  var mmBalance = document.getElementById('mm-balance');
+  var mmLot = document.getElementById('mm-lot');
+  var mmRr = document.getElementById('mm-rr');
+  var mmRestriction = document.getElementById('mm-restriction');
 
   function t(key) {
     return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
@@ -41,7 +54,7 @@
     }
   }
 
-  /* ---------- TradingView Advanced Real-Time Chart (live XAUUSD feed) ---------- */
+  /* ================= TradingView live feed ================= */
   function loadChart(interval) {
     var container = document.getElementById('tv-chart');
     container.innerHTML = '';
@@ -84,66 +97,215 @@
     });
   });
 
-  /* ---------- Visual SMC overlay (price-mapped zones & levels, derived from signal data only) ---------- */
-  function renderOverlay(signal) {
-    var o = signal && signal.smc_overlay;
-    if (!o) { overlay.hidden = true; return; }
-
-    var prices = [signal.entry, signal.stop_loss, signal.take_profit, signal.reference_price];
-    function zonePrices(z) { if (z && typeof z.low === 'number' && typeof z.high === 'number') { prices.push(z.low, z.high); } }
-    zonePrices(o.bsl_zone); zonePrices(o.ssl_zone);
-    (o.order_blocks || []).forEach(zonePrices);
-    (o.fvgs || []).forEach(zonePrices);
-    prices = prices.filter(function (p) { return typeof p === 'number' && isFinite(p); });
-    if (prices.length < 2) { overlay.hidden = true; return; }
-
-    var min = Math.min.apply(null, prices);
-    var max = Math.max.apply(null, prices);
-    var pad = (max - min) * 0.08 || 1;
-    min -= pad; max += pad;
-
-    function pct(price) { return ((max - price) / (max - min)) * 100; }
-
-    var html = '<div class="smc-price-axis">';
-    for (var i = 0; i <= 4; i++) {
-      var p = max - ((max - min) * i / 4);
-      html += '<span style="top:' + (i * 25) + '%">' + p.toFixed(1) + '</span>';
-    }
-    html += '</div>';
-
-    function zoneHtml(z, cls, label) {
-      var top = pct(z.high), height = Math.max(pct(z.low) - top, 1.2);
-      return '<div class="zone ' + cls + '" style="top:' + top + '%;height:' + height + '%"></div>' +
-             '<span class="zone-label" style="top:' + (top + height / 2) + '%">' + esc(label) + ' ' + esc(z.low) + '–' + esc(z.high) + '</span>';
-    }
-
-    if (o.bsl_zone) html += zoneHtml(o.bsl_zone, 'bsl', 'BSL');
-    if (o.ssl_zone) html += zoneHtml(o.ssl_zone, 'ssl', 'SSL');
-    (o.order_blocks || []).forEach(function (ob) {
-      html += zoneHtml(ob, ob.type === 'bearish' ? 'ob-bear' : 'ob-bull', ob.type === 'bearish' ? 'Bearish OB' : 'Bullish OB');
+  /* ================= View tabs (Live feed / SMC map) ================= */
+  document.querySelectorAll('.view-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      document.querySelectorAll('.view-tab').forEach(function (x) { x.classList.remove('active'); });
+      tab.classList.add('active');
+      var view = tab.getAttribute('data-view');
+      document.getElementById('view-live').hidden = view !== 'live';
+      document.getElementById('view-smc').hidden = view !== 'smc';
+      document.getElementById('tf-selector').style.visibility = view === 'live' ? 'visible' : 'hidden';
+      if (view === 'smc') renderSmcChart();
     });
-    (o.fvgs || []).forEach(function (f) { html += zoneHtml(f, 'fvg', 'FVG'); });
+  });
 
-    function levelHtml(price, cls, label) {
-      return '<div class="level-line ' + cls + '" style="top:' + pct(price) + '%"></div>' +
-             '<span class="zone-label" style="top:' + pct(price) + '%;right:70px;left:auto">' + esc(label) + ' ' + esc(price) + '</span>';
-    }
-    html += levelHtml(signal.entry, 'entry', t('entry'));
-    html += levelHtml(signal.stop_loss, 'sl', t('stop_loss'));
-    html += levelHtml(signal.take_profit, 'tp', t('take_profit'));
-
-    smcMap.innerHTML = html;
-    overlay.hidden = false;
+  /* ================= Custom candlestick chart with SMC markings ================= */
+  function zoneColor(cls) {
+    return {
+      bsl: 'rgba(234, 57, 67, 0.22)',
+      ssl: 'rgba(22, 199, 132, 0.22)',
+      'ob-bull': 'rgba(31, 111, 84, 0.45)',
+      'ob-bear': 'rgba(122, 47, 53, 0.45)',
+      fvg: 'rgba(240, 185, 11, 0.22)'
+    }[cls];
   }
 
-  /* ---------- Signal cards ---------- */
+  function addZone(chart, candles, zone, cls) {
+    // A zone = area band between zone.high and zone.low, spanning the candle time range.
+    var first = candles[0].time;
+    var last = candles[candles.length - 1].time;
+    var span = last > first ? last - first : 86400;
+    var end = last + Math.floor(span * 0.25); // extend into the future
+
+    function band(price) {
+      var s = chart.addLineSeries({
+        color: 'transparent',
+        lineWidth: 1,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false
+      });
+      s.setData([
+        { time: first, value: price },
+        { time: end, value: price }
+      ]);
+      return s;
+    }
+
+    var top = band(zone.high);
+    var bottom = band(zone.low);
+    // lightweight-charts v4: no native fill-between; approximate the shaded zone with a
+    // histogram band built from per-bar values between low and high.
+    var hist = chart.addHistogramSeries({
+      color: zoneColor(cls),
+      priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
+      priceLineVisible: false,
+      lastValueVisible: false,
+      base: zone.low
+    });
+    var data = candles.map(function (c) { return { time: c.time, value: zone.high }; });
+    data.push({ time: end, value: zone.high });
+    hist.setData(data);
+    smcZoneSeries.push(hist, top, bottom);
+  }
+
+  function addLevelLine(series, price, color, title) {
+    series.createPriceLine({
+      price: price,
+      color: color,
+      lineWidth: 2,
+      lineStyle: LightweightCharts.LineStyle.Dashed,
+      axisLabelVisible: true,
+      title: title
+    });
+  }
+
+  function renderSmcChart() {
+    var emptyMsg = document.getElementById('smc-chart-empty');
+    var el = document.getElementById('smc-chart');
+    if (typeof LightweightCharts === 'undefined') return; // CDN still loading; user can re-tap tab
+
+    var signal = signals.length ? signals.slice().sort(function (a, b) {
+      return new Date(b.published_at) - new Date(a.published_at);
+    })[0] : null;
+
+    var candles = signal && Array.isArray(signal.candles) ? signal.candles : [];
+    if (!signal || !candles.length) {
+      el.innerHTML = '';
+      emptyMsg.hidden = false;
+      return;
+    }
+    emptyMsg.hidden = true;
+
+    // Rebuild chart cleanly on each render.
+    if (smcChart) { smcChart.remove(); smcChart = null; }
+    smcZoneSeries = [];
+    el.innerHTML = '';
+
+    smcChart = LightweightCharts.createChart(el, {
+      autoSize: true,
+      layout: {
+        background: { color: '#131a22' },
+        textColor: '#8b98a9',
+        fontFamily: "'Inter', 'Noto Sans Bengali', sans-serif"
+      },
+      grid: {
+        vertLines: { color: 'rgba(255,255,255,0.04)' },
+        horzLines: { color: 'rgba(255,255,255,0.04)' }
+      },
+      timeScale: { borderColor: '#233041', timeVisible: true, secondsVisible: false },
+      rightPriceScale: { borderColor: '#233041' }
+    });
+
+    smcCandleSeries = smcChart.addCandlestickSeries({
+      upColor: '#16c784',
+      downColor: '#ea3943',
+      borderUpColor: '#16c784',
+      borderDownColor: '#ea3943',
+      wickUpColor: '#16c784',
+      wickDownColor: '#ea3943'
+    });
+    smcCandleSeries.setData(candles);
+
+    var o = signal.smc_overlay || {};
+    if (o.bsl_zone) addZone(smcChart, candles, o.bsl_zone, 'bsl');
+    if (o.ssl_zone) addZone(smcChart, candles, o.ssl_zone, 'ssl');
+    (o.order_blocks || []).forEach(function (ob) {
+      addZone(smcChart, candles, ob, ob.type === 'bearish' ? 'ob-bear' : 'ob-bull');
+    });
+    (o.fvgs || []).forEach(function (f) { addZone(smcChart, candles, f, 'fvg'); });
+
+    addLevelLine(smcCandleSeries, signal.entry, '#00b8be', t('entry'));
+    addLevelLine(smcCandleSeries, signal.stop_loss, '#ea3943', t('stop_loss'));
+    addLevelLine(smcCandleSeries, signal.take_profit, '#16c784', t('take_profit'));
+
+    smcChart.timeScale().fitContent();
+  }
+
+  /* ================= Money management ================= */
+  // XAUUSD: 1 standard lot = 100 oz. A $1.00 price move = $100 per lot.
+  // We treat 1 pip = $0.10 price move → $10 per pip per lot.
+  var PIP_VALUE_PER_LOT = 10;
+
+  function slDistancePips(s) {
+    if (typeof s.sl_pips === 'number' && s.sl_pips > 0) return s.sl_pips;
+    return Math.abs(s.entry - s.stop_loss) * 10; // price distance → pips ($0.10 per pip)
+  }
+
+  function rrRatio(s) {
+    if (typeof s.rr === 'number' && s.rr > 0) return s.rr;
+    var risk = Math.abs(s.entry - s.stop_loss);
+    var reward = Math.abs(s.take_profit - s.entry);
+    return risk > 0 ? reward / risk : 0;
+  }
+
+  function newestSignal() {
+    if (!signals.length) return null;
+    return signals.slice().sort(function (a, b) {
+      return new Date(b.published_at) - new Date(a.published_at);
+    })[0];
+  }
+
+  function renderMoneyManagement() {
+    var s = newestSignal();
+    if (!s) {
+      mmLot.textContent = '—';
+      mmRr.textContent = '—';
+      mmRestriction.textContent = '';
+      return;
+    }
+    var pips = slDistancePips(s);
+    var riskAmount = balance * (riskPct / 100);
+    var lot = pips > 0 ? riskAmount / (pips * PIP_VALUE_PER_LOT) : 0;
+    lot = Math.max(0.01, Math.floor(lot * 100) / 100); // round down to 0.01, min 0.01
+    var rr = rrRatio(s);
+
+    mmLot.textContent = lot.toFixed(2) + ' Lot';
+    mmRr.textContent = '1 : ' + rr.toFixed(1);
+    mmRestriction.textContent = t('restriction').replace('{lot}', lot.toFixed(2));
+  }
+
+  mmBalance.value = String(balance);
+  mmBalance.addEventListener('input', function () {
+    balance = parseFloat(mmBalance.value) || 0;
+    localStorage.setItem(STORAGE_BALANCE, String(balance));
+    renderMoneyManagement();
+  });
+
+  document.querySelectorAll('.risk-btn').forEach(function (btn) {
+    var val = parseFloat(btn.getAttribute('data-risk'));
+    if (val === riskPct) {
+      document.querySelectorAll('.risk-btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+    }
+    btn.addEventListener('click', function () {
+      riskPct = val;
+      localStorage.setItem(STORAGE_RISK, String(riskPct));
+      document.querySelectorAll('.risk-btn').forEach(function (b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      renderMoneyManagement();
+    });
+  });
+
+  /* ================= Signal cards ================= */
   function render() {
     applyStaticStrings();
     grid.innerHTML = '';
 
     if (!signals.length) {
       emptyState.hidden = false;
-      overlay.hidden = true;
+      renderMoneyManagement();
       return;
     }
     emptyState.hidden = true;
@@ -152,14 +314,16 @@
       return new Date(b.published_at) - new Date(a.published_at);
     });
 
-    renderOverlay(sorted[0]);
-
     sorted.forEach(function (s) {
       var isBuy = String(s.direction).toUpperCase() === 'BUY';
       var content = lang === 'bn' ? s.content_bn : s.content_en;
       var refLine = (typeof s.reference_price === 'number')
         ? '<span>' + esc(t('ref_price')) + ': <strong>' + esc(s.reference_price) + '</strong></span>'
         : '';
+      var slPipsLine = (typeof slDistancePips(s) === 'number')
+        ? '<span>' + esc(t('sl_pips')) + ': <strong>' + esc(slDistancePips(s).toFixed(0)) + ' ' + esc(t('pips')) + '</strong></span>'
+        : '';
+      var rrLine = '<span>' + esc(t('rr_label')) + ': <strong>1 : ' + esc(rrRatio(s).toFixed(1)) + '</strong></span>';
       var card = document.createElement('article');
       card.className = 'signal-card';
       card.innerHTML =
@@ -173,7 +337,7 @@
           '<div class="level"><div class="label">' + esc(t('take_profit')) + '</div><div class="value">' + esc(s.take_profit) + '</div></div>' +
         '</div>' +
         '<div class="meta">' +
-          refLine +
+          refLine + slPipsLine + rrLine +
           '<span>' + esc(t('max_lot')) + ': <strong>' + esc(s.max_lot_size) + '</strong></span>' +
           '<span>' + esc(t('volatility')) + ': <strong>' + esc(s.volatility_range) + '</strong></span>' +
           '<span class="status ' + esc(s.status || '') + '">' + esc(s.status) + '</span>' +
@@ -182,6 +346,9 @@
         '<div class="published">' + esc(t('updated')) + ': ' + esc(formatDate(s.published_at)) + '</div>';
       grid.appendChild(card);
     });
+
+    renderMoneyManagement();
+    if (!document.getElementById('view-smc').hidden) renderSmcChart();
   }
 
   function loadSignals() {
@@ -202,12 +369,11 @@
 
   toggleBtn.addEventListener('click', function () {
     lang = lang === 'en' ? 'bn' : 'en';
-    localStorage.setItem(STORAGE_KEY, lang);
+    localStorage.setItem(STORAGE_LANG, lang);
     render();
   });
 
   loadChart(currentTf);
   loadSignals();
-  // Refresh signals every 60s so newly published signals appear without a reload.
   setInterval(loadSignals, 60000);
 })();
