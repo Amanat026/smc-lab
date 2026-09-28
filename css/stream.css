@@ -1,4 +1,4 @@
-/* ---------- Underlying Stream panel ---------- */
+/* ---------- Underlying Stream panel (loaded via styles.css import in head? no — separate link) ---------- */
 .stream-panel {
   background: var(--panel);
   backdrop-filter: blur(14px);
