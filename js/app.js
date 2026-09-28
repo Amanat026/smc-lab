@@ -1,21 +1,21 @@
 // SMC Liquidity Hunting AI Lab dashboard.
-// TradingView live feed + custom lightweight-charts candlestick chart with SMC markings
-// + dynamic balance-based money management + hourly auto-refresh with last-sync clock.
-// All market data derives from data/signals.json — no hardcoded market prices anywhere.
+// TradingView live feed + custom 15m candlestick chart with SMC markings
+// + 4-session timeline + dynamic balance-based money management + hourly auto-refresh.
 (function () {
   var STORAGE_LANG = 'smc-lang';
   var STORAGE_BALANCE = 'smc-balance';
   var STORAGE_RISK = 'smc-risk';
+
+  var SESSIONS = ['pre_london', 'post_london', 'pre_ny', 'post_ny'];
+  var SESSION_TIMES = { pre_london: '09:30', post_london: '12:30', pre_ny: '16:00', post_ny: '19:30' };
 
   var lang = localStorage.getItem(STORAGE_LANG) || 'en';
   var signals = [];
   var currentTf = 'D';
   var smcChart = null;
   var smcCandleSeries = null;
-  var smcZoneSeries = [];
   var lastSyncAt = null;
 
-  // Money management state
   var balance = parseFloat(localStorage.getItem(STORAGE_BALANCE)) || 500;
   var riskPct = parseFloat(localStorage.getItem(STORAGE_RISK)) || 1;
 
@@ -23,6 +23,7 @@
   var emptyState = document.getElementById('empty-state');
   var toggleBtn = document.getElementById('lang-toggle');
   var lastSyncEl = document.getElementById('last-sync-time');
+  var stripEl = document.getElementById('session-strip');
   var mmBalance = document.getElementById('mm-balance');
   var mmLot = document.getElementById('mm-lot');
   var mmRr = document.getElementById('mm-rr');
@@ -30,6 +31,13 @@
 
   function t(key) {
     return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
+  }
+
+  function sessionLabel(s) {
+    var key = 'session_' + (s.session || 'manual');
+    return (s.session_label_en && lang === 'en') ? s.session_label_en
+         : (s.session_label_bn && lang === 'bn') ? s.session_label_bn
+         : t(key);
   }
 
   function applyStaticStrings() {
@@ -59,6 +67,32 @@
 
   function renderLastSync() {
     if (lastSyncAt) lastSyncEl.textContent = formatDate(lastSyncAt);
+  }
+
+  /* ================= Session timeline strip ================= */
+  function renderSessionStrip() {
+    var today = new Date().toISOString().slice(0, 10);
+    var nowUtcMinutes = new Date().getUTCHours() * 60 + new Date().getUTCMinutes();
+    // Dubai = UTC+4
+    var nowDubaiMinutes = (nowUtcMinutes + 240) % 1440;
+
+    stripEl.innerHTML = '';
+    SESSIONS.forEach(function (sess) {
+      var parts = SESSION_TIMES[sess].split(':');
+      var fireMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+      var fired = signals.some(function (s) {
+        return s.session === sess && String(s.published_at || '').slice(0, 10) === today;
+      });
+      var due = nowDubaiMinutes >= fireMinutes;
+      var statusKey = fired ? 'status_live' : (due ? 'status_none' : 'status_pending');
+      var chip = document.createElement('div');
+      chip.className = 'session-chip s-' + sess.replace('_', '-') + (fired ? '' : ' pending');
+      chip.innerHTML =
+        '<span class="sess-name">' + esc(t('session_' + sess)) + '</span>' +
+        '<span class="sess-time">' + esc(SESSION_TIMES[sess]) + ' ' + esc(t('dubai_time')) + '</span>' +
+        '<span class="sess-status">' + esc(t(statusKey)) + '</span>';
+      stripEl.appendChild(chip);
+    });
   }
 
   /* ================= TradingView live feed ================= */
@@ -104,7 +138,7 @@
     });
   });
 
-  /* ================= View tabs (Live feed / SMC map) ================= */
+  /* ================= View tabs ================= */
   document.querySelectorAll('.view-tab').forEach(function (tab) {
     tab.addEventListener('click', function () {
       document.querySelectorAll('.view-tab').forEach(function (x) { x.classList.remove('active'); });
@@ -117,21 +151,21 @@
     });
   });
 
-  /* ================= Custom candlestick chart with SMC markings ================= */
+  /* ================= Custom candlestick chart with SMC markings (15m execution) ================= */
   function zoneColor(cls) {
     return {
-      bsl: 'rgba(255, 176, 32, 0.30)',   // amber/gold
-      ssl: 'rgba(168, 85, 247, 0.28)',   // violet
-      'ob-bull': 'rgba(16, 185, 129, 0.40)', // emerald
-      'ob-bear': 'rgba(244, 63, 94, 0.40)',  // crimson
-      fvg: 'rgba(56, 189, 248, 0.28)'    // electric blue
+      bsl: 'rgba(255, 176, 32, 0.30)',
+      ssl: 'rgba(168, 85, 247, 0.28)',
+      'ob-bull': 'rgba(16, 185, 129, 0.40)',
+      'ob-bear': 'rgba(244, 63, 94, 0.40)',
+      fvg: 'rgba(56, 189, 248, 0.28)'
     }[cls];
   }
 
   function addZone(chart, candles, zone, cls) {
     var first = candles[0].time;
     var last = candles[candles.length - 1].time;
-    var span = last > first ? last - first : 86400;
+    var span = last > first ? last - first : 3600;
     var end = last + Math.floor(span * 0.25);
 
     var hist = chart.addHistogramSeries({
@@ -144,7 +178,6 @@
     var data = candles.map(function (c) { return { time: c.time, value: zone.high }; });
     data.push({ time: end, value: zone.high });
     hist.setData(data);
-    smcZoneSeries.push(hist);
   }
 
   function addLevelLine(series, price, color, title) {
@@ -173,7 +206,6 @@
     emptyMsg.hidden = true;
 
     if (smcChart) { smcChart.remove(); smcChart = null; }
-    smcZoneSeries = [];
     el.innerHTML = '';
 
     smcChart = LightweightCharts.createChart(el, {
@@ -217,9 +249,7 @@
   }
 
   /* ================= Money management ================= */
-  // XAUUSD: 1 standard lot = 100 oz. A $1.00 price move = $100 per lot.
-  // 1 pip = $0.10 price move → $10 per pip per lot.
-  var PIP_VALUE_PER_LOT = 10;
+  var PIP_VALUE_PER_LOT = 10; // XAUUSD: $10 per pip per standard lot (100 oz)
 
   function slDistancePips(s) {
     if (typeof s.sl_pips === 'number' && s.sl_pips > 0) return s.sl_pips;
@@ -285,6 +315,7 @@
   function render() {
     applyStaticStrings();
     renderLastSync();
+    renderSessionStrip();
     grid.innerHTML = '';
 
     if (!signals.length) {
@@ -306,11 +337,15 @@
         : '';
       var slPipsLine = '<span>' + esc(t('sl_pips')) + ': <strong>' + esc(slDistancePips(s).toFixed(0)) + ' ' + esc(t('pips')) + '</strong></span>';
       var rrLine = '<span>' + esc(t('rr_label')) + ': <strong>1 : ' + esc(rrRatio(s).toFixed(1)) + '</strong></span>';
+      var sessKey = s.session || 'manual';
+      var sessBadge = '<span class="session-badge sb-' + esc(sessKey) + '">' + esc(sessionLabel(s)) +
+        (s.session_time_dubai ? ' · ' + esc(s.session_time_dubai) : '') + '</span>';
       var card = document.createElement('article');
       card.className = 'signal-card ' + (isBuy ? 'card-buy' : 'card-sell');
       card.innerHTML =
         '<div class="signal-top">' +
           '<span class="pair">' + esc(s.pair) + '</span>' +
+          sessBadge +
           '<span class="badge ' + (isBuy ? 'buy' : 'sell') + '">' + esc(s.direction) + '</span>' +
         '</div>' +
         '<div class="levels">' +
@@ -358,6 +393,5 @@
 
   loadChart(currentTf);
   loadSignals();
-  // Auto-refresh: re-fetch signals.json every 60s so hourly agent commits appear without reload.
   setInterval(loadSignals, 60000);
 })();
