@@ -1,6 +1,7 @@
 // SMC Liquidity Hunting AI Lab dashboard.
 // TradingView live feed + custom lightweight-charts candlestick chart with SMC markings
-// + dynamic balance-based money management. All market data derives from data/signals.json.
+// + dynamic balance-based money management + hourly auto-refresh with last-sync clock.
+// All market data derives from data/signals.json — no hardcoded market prices anywhere.
 (function () {
   var STORAGE_LANG = 'smc-lang';
   var STORAGE_BALANCE = 'smc-balance';
@@ -12,6 +13,7 @@
   var smcChart = null;
   var smcCandleSeries = null;
   var smcZoneSeries = [];
+  var lastSyncAt = null;
 
   // Money management state
   var balance = parseFloat(localStorage.getItem(STORAGE_BALANCE)) || 500;
@@ -20,6 +22,7 @@
   var grid = document.getElementById('signals');
   var emptyState = document.getElementById('empty-state');
   var toggleBtn = document.getElementById('lang-toggle');
+  var lastSyncEl = document.getElementById('last-sync-time');
   var mmBalance = document.getElementById('mm-balance');
   var mmLot = document.getElementById('mm-lot');
   var mmRr = document.getElementById('mm-rr');
@@ -52,6 +55,10 @@
     } catch (e) {
       return iso;
     }
+  }
+
+  function renderLastSync() {
+    if (lastSyncAt) lastSyncEl.textContent = formatDate(lastSyncAt);
   }
 
   /* ================= TradingView live feed ================= */
@@ -113,40 +120,20 @@
   /* ================= Custom candlestick chart with SMC markings ================= */
   function zoneColor(cls) {
     return {
-      bsl: 'rgba(234, 57, 67, 0.22)',
-      ssl: 'rgba(22, 199, 132, 0.22)',
-      'ob-bull': 'rgba(31, 111, 84, 0.45)',
-      'ob-bear': 'rgba(122, 47, 53, 0.45)',
-      fvg: 'rgba(240, 185, 11, 0.22)'
+      bsl: 'rgba(255, 176, 32, 0.30)',   // amber/gold
+      ssl: 'rgba(168, 85, 247, 0.28)',   // violet
+      'ob-bull': 'rgba(16, 185, 129, 0.40)', // emerald
+      'ob-bear': 'rgba(244, 63, 94, 0.40)',  // crimson
+      fvg: 'rgba(56, 189, 248, 0.28)'    // electric blue
     }[cls];
   }
 
   function addZone(chart, candles, zone, cls) {
-    // A zone = area band between zone.high and zone.low, spanning the candle time range.
     var first = candles[0].time;
     var last = candles[candles.length - 1].time;
     var span = last > first ? last - first : 86400;
-    var end = last + Math.floor(span * 0.25); // extend into the future
+    var end = last + Math.floor(span * 0.25);
 
-    function band(price) {
-      var s = chart.addLineSeries({
-        color: 'transparent',
-        lineWidth: 1,
-        priceLineVisible: false,
-        lastValueVisible: false,
-        crosshairMarkerVisible: false
-      });
-      s.setData([
-        { time: first, value: price },
-        { time: end, value: price }
-      ]);
-      return s;
-    }
-
-    var top = band(zone.high);
-    var bottom = band(zone.low);
-    // lightweight-charts v4: no native fill-between; approximate the shaded zone with a
-    // histogram band built from per-bar values between low and high.
     var hist = chart.addHistogramSeries({
       color: zoneColor(cls),
       priceFormat: { type: 'price', precision: 2, minMove: 0.01 },
@@ -157,7 +144,7 @@
     var data = candles.map(function (c) { return { time: c.time, value: zone.high }; });
     data.push({ time: end, value: zone.high });
     hist.setData(data);
-    smcZoneSeries.push(hist, top, bottom);
+    smcZoneSeries.push(hist);
   }
 
   function addLevelLine(series, price, color, title) {
@@ -174,12 +161,9 @@
   function renderSmcChart() {
     var emptyMsg = document.getElementById('smc-chart-empty');
     var el = document.getElementById('smc-chart');
-    if (typeof LightweightCharts === 'undefined') return; // CDN still loading; user can re-tap tab
+    if (typeof LightweightCharts === 'undefined') return;
 
-    var signal = signals.length ? signals.slice().sort(function (a, b) {
-      return new Date(b.published_at) - new Date(a.published_at);
-    })[0] : null;
-
+    var signal = newestSignal();
     var candles = signal && Array.isArray(signal.candles) ? signal.candles : [];
     if (!signal || !candles.length) {
       el.innerHTML = '';
@@ -188,7 +172,6 @@
     }
     emptyMsg.hidden = true;
 
-    // Rebuild chart cleanly on each render.
     if (smcChart) { smcChart.remove(); smcChart = null; }
     smcZoneSeries = [];
     el.innerHTML = '';
@@ -196,25 +179,25 @@
     smcChart = LightweightCharts.createChart(el, {
       autoSize: true,
       layout: {
-        background: { color: '#131a22' },
+        background: { color: '#10161f' },
         textColor: '#8b98a9',
         fontFamily: "'Inter', 'Noto Sans Bengali', sans-serif"
       },
       grid: {
-        vertLines: { color: 'rgba(255,255,255,0.04)' },
-        horzLines: { color: 'rgba(255,255,255,0.04)' }
+        vertLines: { color: 'rgba(255,255,255,0.05)' },
+        horzLines: { color: 'rgba(255,255,255,0.05)' }
       },
-      timeScale: { borderColor: '#233041', timeVisible: true, secondsVisible: false },
-      rightPriceScale: { borderColor: '#233041' }
+      timeScale: { borderColor: 'rgba(255,255,255,0.1)', timeVisible: true, secondsVisible: false },
+      rightPriceScale: { borderColor: 'rgba(255,255,255,0.1)' }
     });
 
     smcCandleSeries = smcChart.addCandlestickSeries({
-      upColor: '#16c784',
-      downColor: '#ea3943',
-      borderUpColor: '#16c784',
-      borderDownColor: '#ea3943',
-      wickUpColor: '#16c784',
-      wickDownColor: '#ea3943'
+      upColor: '#00e5a0',
+      downColor: '#ff3d71',
+      borderUpColor: '#00e5a0',
+      borderDownColor: '#ff3d71',
+      wickUpColor: '#00e5a0',
+      wickDownColor: '#ff3d71'
     });
     smcCandleSeries.setData(candles);
 
@@ -226,21 +209,21 @@
     });
     (o.fvgs || []).forEach(function (f) { addZone(smcChart, candles, f, 'fvg'); });
 
-    addLevelLine(smcCandleSeries, signal.entry, '#00b8be', t('entry'));
-    addLevelLine(smcCandleSeries, signal.stop_loss, '#ea3943', t('stop_loss'));
-    addLevelLine(smcCandleSeries, signal.take_profit, '#16c784', t('take_profit'));
+    addLevelLine(smcCandleSeries, signal.entry, '#00e5ff', t('entry'));
+    addLevelLine(smcCandleSeries, signal.stop_loss, '#ff3d71', t('stop_loss'));
+    addLevelLine(smcCandleSeries, signal.take_profit, '#00e5a0', t('take_profit'));
 
     smcChart.timeScale().fitContent();
   }
 
   /* ================= Money management ================= */
   // XAUUSD: 1 standard lot = 100 oz. A $1.00 price move = $100 per lot.
-  // We treat 1 pip = $0.10 price move → $10 per pip per lot.
+  // 1 pip = $0.10 price move → $10 per pip per lot.
   var PIP_VALUE_PER_LOT = 10;
 
   function slDistancePips(s) {
     if (typeof s.sl_pips === 'number' && s.sl_pips > 0) return s.sl_pips;
-    return Math.abs(s.entry - s.stop_loss) * 10; // price distance → pips ($0.10 per pip)
+    return Math.abs(s.entry - s.stop_loss) * 10;
   }
 
   function rrRatio(s) {
@@ -268,7 +251,7 @@
     var pips = slDistancePips(s);
     var riskAmount = balance * (riskPct / 100);
     var lot = pips > 0 ? riskAmount / (pips * PIP_VALUE_PER_LOT) : 0;
-    lot = Math.max(0.01, Math.floor(lot * 100) / 100); // round down to 0.01, min 0.01
+    lot = Math.max(0.01, Math.floor(lot * 100) / 100);
     var rr = rrRatio(s);
 
     mmLot.textContent = lot.toFixed(2) + ' Lot';
@@ -301,6 +284,7 @@
   /* ================= Signal cards ================= */
   function render() {
     applyStaticStrings();
+    renderLastSync();
     grid.innerHTML = '';
 
     if (!signals.length) {
@@ -320,21 +304,19 @@
       var refLine = (typeof s.reference_price === 'number')
         ? '<span>' + esc(t('ref_price')) + ': <strong>' + esc(s.reference_price) + '</strong></span>'
         : '';
-      var slPipsLine = (typeof slDistancePips(s) === 'number')
-        ? '<span>' + esc(t('sl_pips')) + ': <strong>' + esc(slDistancePips(s).toFixed(0)) + ' ' + esc(t('pips')) + '</strong></span>'
-        : '';
+      var slPipsLine = '<span>' + esc(t('sl_pips')) + ': <strong>' + esc(slDistancePips(s).toFixed(0)) + ' ' + esc(t('pips')) + '</strong></span>';
       var rrLine = '<span>' + esc(t('rr_label')) + ': <strong>1 : ' + esc(rrRatio(s).toFixed(1)) + '</strong></span>';
       var card = document.createElement('article');
-      card.className = 'signal-card';
+      card.className = 'signal-card ' + (isBuy ? 'card-buy' : 'card-sell');
       card.innerHTML =
         '<div class="signal-top">' +
           '<span class="pair">' + esc(s.pair) + '</span>' +
           '<span class="badge ' + (isBuy ? 'buy' : 'sell') + '">' + esc(s.direction) + '</span>' +
         '</div>' +
         '<div class="levels">' +
-          '<div class="level"><div class="label">' + esc(t('entry')) + '</div><div class="value">' + esc(s.entry) + '</div></div>' +
-          '<div class="level"><div class="label">' + esc(t('stop_loss')) + '</div><div class="value">' + esc(s.stop_loss) + '</div></div>' +
-          '<div class="level"><div class="label">' + esc(t('take_profit')) + '</div><div class="value">' + esc(s.take_profit) + '</div></div>' +
+          '<div class="level lv-entry"><div class="label">' + esc(t('entry')) + '</div><div class="value">' + esc(s.entry) + '</div></div>' +
+          '<div class="level lv-sl"><div class="label">' + esc(t('stop_loss')) + '</div><div class="value">' + esc(s.stop_loss) + '</div></div>' +
+          '<div class="level lv-tp"><div class="label">' + esc(t('take_profit')) + '</div><div class="value">' + esc(s.take_profit) + '</div></div>' +
         '</div>' +
         '<div class="meta">' +
           refLine + slPipsLine + rrLine +
@@ -359,6 +341,7 @@
       })
       .then(function (data) {
         signals = Array.isArray(data) ? data : [];
+        lastSyncAt = new Date().toISOString();
         render();
       })
       .catch(function () {
@@ -375,5 +358,6 @@
 
   loadChart(currentTf);
   loadSignals();
+  // Auto-refresh: re-fetch signals.json every 60s so hourly agent commits appear without reload.
   setInterval(loadSignals, 60000);
 })();
