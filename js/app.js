@@ -1,13 +1,19 @@
 // SMC Liquidity Hunting AI Lab dashboard.
-// TradingView live feed + custom 15m candlestick chart with SMC markings
-// + Underlying Stream panel + 4-session timeline + money management + auto-refresh.
+// TradingView live feed + 15m SMC chart + Underlying Stream panel
+// + 4-session window cards with live countdowns + 24h cycle bar + money management.
 (function () {
   var STORAGE_LANG = 'smc-lang';
   var STORAGE_BALANCE = 'smc-balance';
   var STORAGE_RISK = 'smc-risk';
 
+  // Session windows in Asia/Dubai (UTC+4): [startMin, endMin] from Dubai midnight.
   var SESSIONS = ['pre_london', 'post_london', 'pre_ny', 'post_ny'];
-  var SESSION_TIMES = { pre_london: '09:30', post_london: '12:30', pre_ny: '16:00', post_ny: '19:30' };
+  var SESSION_WINDOWS = {
+    pre_london:  { start: 8 * 60 + 30, end: 10 * 60 + 30, label: '08:30 – 10:30' },
+    post_london: { start: 12 * 60 + 30, end: 14 * 60 + 30, label: '12:30 – 14:30' },
+    pre_ny:      { start: 15 * 60 + 30, end: 17 * 60 + 30, label: '15:30 – 17:30' },
+    post_ny:     { start: 19 * 60 + 30, end: 21 * 60 + 30, label: '19:30 – 21:30' }
+  };
 
   var lang = localStorage.getItem(STORAGE_LANG) || 'en';
   var signals = [];
@@ -15,6 +21,7 @@
   var smcChart = null;
   var smcCandleSeries = null;
   var lastSyncAt = null;
+  var countdownTimer = null;
 
   var balance = parseFloat(localStorage.getItem(STORAGE_BALANCE)) || 500;
   var riskPct = parseFloat(localStorage.getItem(STORAGE_RISK)) || 1;
@@ -24,6 +31,7 @@
   var toggleBtn = document.getElementById('lang-toggle');
   var lastSyncEl = document.getElementById('last-sync-time');
   var stripEl = document.getElementById('session-strip');
+  var cycleBar = document.getElementById('cycle-bar');
   var streamPanel = document.getElementById('stream-panel');
   var streamConfidence = document.getElementById('stream-confidence');
   var streamIndicator = document.getElementById('stream-indicator');
@@ -76,6 +84,116 @@
     if (lastSyncAt) lastSyncEl.textContent = formatDate(lastSyncAt);
   }
 
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function fmtCountdown(ms) {
+    if (ms < 0) ms = 0;
+    var s = Math.floor(ms / 1000);
+    var h = Math.floor(s / 3600);
+    var m = Math.floor((s % 3600) / 60);
+    var sec = s % 60;
+    return pad2(h) + ':' + pad2(m) + ':' + pad2(sec);
+  }
+
+  // Current Dubai time as a Date (UTC+4 fixed offset, no DST).
+  function dubaiNow() {
+    return new Date(Date.now() + 4 * 3600000);
+  }
+
+  // Dubai minutes since Dubai midnight.
+  function dubaiMinutes() {
+    var d = dubaiNow();
+    return d.getUTCHours() * 60 + d.getUTCMinutes();
+  }
+
+  /* ================= 24-hour cycle bar ================= */
+  function renderCycleBar() {
+    cycleBar.innerHTML = '';
+    SESSIONS.forEach(function (sess) {
+      var w = SESSION_WINDOWS[sess];
+      var seg = document.createElement('div');
+      seg.className = 'cycle-seg seg-' + sess;
+      seg.style.left = (w.start / 1440 * 100) + '%';
+      seg.style.width = ((w.end - w.start) / 1440 * 100) + '%';
+      seg.title = t('session_' + sess) + ' ' + w.label;
+      cycleBar.appendChild(seg);
+    });
+    var now = document.createElement('div');
+    now.className = 'cycle-now';
+    now.style.left = (dubaiMinutes() / 1440 * 100) + '%';
+    cycleBar.appendChild(now);
+  }
+
+  /* ================= Session window cards with live countdowns ================= */
+  function sessionState(sess) {
+    var w = SESSION_WINDOWS[sess];
+    var now = dubaiMinutes();
+    if (now < w.start) return 'upcoming';
+    if (now >= w.start && now < w.end) return 'live';
+    return 'expired';
+  }
+
+  // Milliseconds until the given Dubai-minute mark today (or tomorrow if past).
+  function msUntilDubaiMinute(minMark) {
+    var d = dubaiNow();
+    var midnightUtc = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0);
+    var target = midnightUtc + minMark * 60000;
+    var nowMs = d.getTime();
+    if (target <= nowMs) target += 86400000;
+    return target - nowMs;
+  }
+
+  function renderSessionCards() {
+    stripEl.innerHTML = '';
+    SESSIONS.forEach(function (sess) {
+      var w = SESSION_WINDOWS[sess];
+      var state = sessionState(sess);
+      var chipKey = state === 'live' ? 'sess_live' : state === 'upcoming' ? 'sess_upcoming' : 'sess_expired';
+      var card = document.createElement('div');
+      card.className = 'session-card-rich s-' + sess.replace('_', '-') + (state === 'live' ? ' is-live' : state === 'expired' ? ' is-expired' : '');
+      card.innerHTML =
+        '<div><span class="sess-name">' + esc(t('session_' + sess)) + '</span>' +
+        '<span class="sess-dur">' + esc(t('duration')) + '</span></div>' +
+        '<div class="sess-window">' + esc(w.label) + ' ' + esc(t('dubai_time')) + '</div>' +
+        '<div class="sess-focus">' + esc(t('focus_' + sess)) + '</div>' +
+        '<div class="sess-foot">' +
+          '<span class="sess-chip chip-' + state + '">' + esc(t(chipKey)) + '</span>' +
+          '<span class="sess-countdown" data-sess="' + sess + '"></span>' +
+        '</div>';
+      stripEl.appendChild(card);
+    });
+    tickCountdowns();
+  }
+
+  function tickCountdowns() {
+    document.querySelectorAll('.sess-countdown').forEach(function (el) {
+      var sess = el.getAttribute('data-sess');
+      var w = SESSION_WINDOWS[sess];
+      var state = sessionState(sess);
+      if (state === 'live') {
+        el.innerHTML = '<span class="cd-label">' + esc(t('ends_in')) + '</span>' + esc(fmtCountdown(msUntilDubaiMinute(w.end)));
+      } else if (state === 'upcoming') {
+        el.innerHTML = '<span class="cd-label">' + esc(t('starts_in')) + '</span>' + esc(fmtCountdown(msUntilDubaiMinute(w.start)));
+      } else {
+        el.textContent = '—';
+      }
+    });
+    // Refresh the now-marker each minute is overkill; reposition every tick is cheap.
+    var nowMarker = cycleBar.querySelector('.cycle-now');
+    if (nowMarker) nowMarker.style.left = (dubaiMinutes() / 1440 * 100) + '%';
+    // Re-render cards when a window boundary is crossed (status chips flip).
+    var statesNow = SESSIONS.map(sessionState).join(',');
+    if (statesNow !== tickCountdowns._last) {
+      tickCountdowns._last = statesNow;
+      renderSessionCards();
+    }
+  }
+
+  function startCountdownLoop() {
+    if (countdownTimer) clearInterval(countdownTimer);
+    countdownTimer = setInterval(tickCountdowns, 1000);
+  }
+
   /* ================= Underlying Stream panel ================= */
   function renderStreamPanel() {
     var s = newestSignal();
@@ -100,31 +218,6 @@
       var li = document.createElement('li');
       li.textContent = ev;
       streamEvidence.appendChild(li);
-    });
-  }
-
-  /* ================= Session timeline strip ================= */
-  function renderSessionStrip() {
-    var today = new Date().toISOString().slice(0, 10);
-    var nowUtcMinutes = new Date().getUTCHours() * 60 + new Date().getUTCMinutes();
-    var nowDubaiMinutes = (nowUtcMinutes + 240) % 1440;
-
-    stripEl.innerHTML = '';
-    SESSIONS.forEach(function (sess) {
-      var parts = SESSION_TIMES[sess].split(':');
-      var fireMinutes = parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
-      var fired = signals.some(function (s) {
-        return s.session === sess && String(s.published_at || '').slice(0, 10) === today;
-      });
-      var due = nowDubaiMinutes >= fireMinutes;
-      var statusKey = fired ? 'status_live' : (due ? 'status_none' : 'status_pending');
-      var chip = document.createElement('div');
-      chip.className = 'session-chip s-' + sess.replace('_', '-') + (fired ? '' : ' pending');
-      chip.innerHTML =
-        '<span class="sess-name">' + esc(t('session_' + sess)) + '</span>' +
-        '<span class="sess-time">' + esc(SESSION_TIMES[sess]) + ' ' + esc(t('dubai_time')) + '</span>' +
-        '<span class="sess-status">' + esc(t(statusKey)) + '</span>';
-      stripEl.appendChild(chip);
     });
   }
 
@@ -348,7 +441,8 @@
   function render() {
     applyStaticStrings();
     renderLastSync();
-    renderSessionStrip();
+    renderCycleBar();
+    renderSessionCards();
     renderStreamPanel();
     grid.innerHTML = '';
 
@@ -431,5 +525,6 @@
 
   loadChart(currentTf);
   loadSignals();
+  startCountdownLoop();
   setInterval(loadSignals, 60000);
 })();

@@ -28,6 +28,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/styles.css" />
   <link rel="stylesheet" href="css/stream.css" />
+  <link rel="stylesheet" href="css/sessions.css" />
   <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js" defer></script>
 </head>
 <body>
@@ -88,9 +89,13 @@
       </div>
     </section>
 
-    <!-- Daily session timeline -->
+    <!-- Daily session timeline with 24h cycle bar -->
     <section class="session-strip-wrap">
       <h2 class="section-heading" data-i18n="sessions_heading">Today's Sessions</h2>
+      <div class="cycle-bar-wrap">
+        <div id="cycle-bar" class="cycle-bar" role="img" aria-label="24-hour session cycle"></div>
+        <div class="cycle-labels"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>24:00</span></div>
+      </div>
       <div id="session-strip" class="session-strip"></div>
     </section>
 
