@@ -1,12 +1,13 @@
 // SMC Liquidity Hunting AI Lab dashboard.
 // TradingView live feed + 15m SMC chart + Underlying Stream panel
-// + 4-session window cards with live countdowns + 24h cycle bar + money management.
+// + 4-session window cards with live countdowns + 24h cycle bar + money management
+// + live Dubai header clock + instant refetch on session transitions.
 (function () {
   var STORAGE_LANG = 'smc-lang';
   var STORAGE_BALANCE = 'smc-balance';
   var STORAGE_RISK = 'smc-risk';
 
-  // Session windows in Asia/Dubai (UTC+4): [startMin, endMin] from Dubai midnight.
+  // Session windows in Asia/Dubai (UTC+4, fixed, no DST) — the ONLY source of window times.
   var SESSIONS = ['pre_london', 'post_london', 'pre_ny', 'post_ny'];
   var SESSION_WINDOWS = {
     pre_london:  { start: 8 * 60 + 30, end: 10 * 60 + 30, label: '08:30 – 10:30' },
@@ -21,7 +22,7 @@
   var smcChart = null;
   var smcCandleSeries = null;
   var lastSyncAt = null;
-  var countdownTimer = null;
+  var tickTimer = null;
 
   var balance = parseFloat(localStorage.getItem(STORAGE_BALANCE)) || 500;
   var riskPct = parseFloat(localStorage.getItem(STORAGE_RISK)) || 1;
@@ -30,6 +31,7 @@
   var emptyState = document.getElementById('empty-state');
   var toggleBtn = document.getElementById('lang-toggle');
   var lastSyncEl = document.getElementById('last-sync-time');
+  var dubaiClockEl = document.getElementById('dubai-clock-time');
   var stripEl = document.getElementById('session-strip');
   var cycleBar = document.getElementById('cycle-bar');
   var streamPanel = document.getElementById('stream-panel');
@@ -95,15 +97,29 @@
     return pad2(h) + ':' + pad2(m) + ':' + pad2(sec);
   }
 
-  // Current Dubai time as a Date (UTC+4 fixed offset, no DST).
+  // Current Dubai time as a Date (UTC+4 fixed offset, no DST) — always from the live clock.
   function dubaiNow() {
     return new Date(Date.now() + 4 * 3600000);
   }
 
-  // Dubai minutes since Dubai midnight.
   function dubaiMinutes() {
     var d = dubaiNow();
     return d.getUTCHours() * 60 + d.getUTCMinutes();
+  }
+
+  function dubaiClockString() {
+    var d = dubaiNow();
+    return pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes()) + ':' + pad2(d.getUTCSeconds());
+  }
+
+  // The currently live session key, or null between windows.
+  function activeSession() {
+    var now = dubaiMinutes();
+    for (var i = 0; i < SESSIONS.length; i++) {
+      var w = SESSION_WINDOWS[SESSIONS[i]];
+      if (now >= w.start && now < w.end) return SESSIONS[i];
+    }
+    return null;
   }
 
   /* ================= 24-hour cycle bar ================= */
@@ -133,7 +149,6 @@
     return 'expired';
   }
 
-  // Milliseconds until the given Dubai-minute mark today (or tomorrow if past).
   function msUntilDubaiMinute(minMark) {
     var d = dubaiNow();
     var midnightUtc = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 0, 0, 0);
@@ -162,10 +177,15 @@
         '</div>';
       stripEl.appendChild(card);
     });
-    tickCountdowns();
+    tickLive();
   }
 
-  function tickCountdowns() {
+  // Master 1-second tick: countdowns, header clock, now-marker, session transitions.
+  function tickLive() {
+    // Header live clock
+    if (dubaiClockEl) dubaiClockEl.textContent = dubaiClockString();
+
+    // Countdowns
     document.querySelectorAll('.sess-countdown').forEach(function (el) {
       var sess = el.getAttribute('data-sess');
       var w = SESSION_WINDOWS[sess];
@@ -178,20 +198,25 @@
         el.textContent = '—';
       }
     });
-    // Refresh the now-marker each minute is overkill; reposition every tick is cheap.
+
+    // Cycle bar now-marker
     var nowMarker = cycleBar.querySelector('.cycle-now');
     if (nowMarker) nowMarker.style.left = (dubaiMinutes() / 1440 * 100) + '%';
-    // Re-render cards when a window boundary is crossed (status chips flip).
+
+    // Session transition detection: re-render cards AND instantly refetch signals
     var statesNow = SESSIONS.map(sessionState).join(',');
-    if (statesNow !== tickCountdowns._last) {
-      tickCountdowns._last = statesNow;
+    if (statesNow !== tickLive._last) {
+      var isTransition = typeof tickLive._last !== 'undefined';
+      tickLive._last = statesNow;
       renderSessionCards();
+      renderSignalCards(); // badges reflect the new active session immediately
+      if (isTransition) loadSignals(); // fresh data at window boundary, no manual refresh
     }
   }
 
-  function startCountdownLoop() {
-    if (countdownTimer) clearInterval(countdownTimer);
-    countdownTimer = setInterval(tickCountdowns, 1000);
+  function startTickLoop() {
+    if (tickTimer) clearInterval(tickTimer);
+    tickTimer = setInterval(tickLive, 1000);
   }
 
   /* ================= Underlying Stream panel ================= */
@@ -438,12 +463,7 @@
   });
 
   /* ================= Signal cards ================= */
-  function render() {
-    applyStaticStrings();
-    renderLastSync();
-    renderCycleBar();
-    renderSessionCards();
-    renderStreamPanel();
+  function renderSignalCards() {
     grid.innerHTML = '';
 
     if (!signals.length) {
@@ -453,6 +473,7 @@
     }
     emptyState.hidden = true;
 
+    var liveSess = activeSession();
     var sorted = signals.slice().sort(function (a, b) {
       return new Date(b.published_at) - new Date(a.published_at);
     });
@@ -466,8 +487,13 @@
       var slPipsLine = '<span>' + esc(t('sl_pips')) + ': <strong>' + esc(slDistancePips(s).toFixed(0)) + ' ' + esc(t('pips')) + '</strong></span>';
       var rrLine = '<span>' + esc(t('rr_label')) + ': <strong>1 : ' + esc(rrRatio(s).toFixed(1)) + '</strong></span>';
       var sessKey = s.session || 'manual';
-      var sessBadge = '<span class="session-badge sb-' + esc(sessKey) + '">' + esc(sessionLabel(s)) +
-        (s.session_time_dubai ? ' · ' + esc(s.session_time_dubai) : '') + '</span>';
+      // Badge shows the session label + its CONFIG window (never a stale per-signal time string).
+      var windowLabel = SESSION_WINDOWS[sessKey] ? ' · ' + SESSION_WINDOWS[sessKey].label : '';
+      var sessBadge = '<span class="session-badge sb-' + esc(sessKey) + '">' + esc(sessionLabel(s)) + esc(windowLabel) + '</span>';
+      // Live indicator when this card's session is the one currently in its window.
+      var liveNowBadge = (liveSess && sessKey === liveSess)
+        ? '<span class="sess-chip chip-live">' + esc(t('sess_live')) + '</span>'
+        : '';
       var streamBadge = (s.stream && s.stream.direction)
         ? '<span class="stream-align-badge' + (String(s.stream.direction).toLowerCase() === 'bearish' ? ' sab-bearish' : '') + '">' +
           (String(s.stream.direction).toLowerCase() === 'bearish' ? '▼ ' : '▲ ') + esc(t('stream_aligned')) + '</span>'
@@ -477,7 +503,7 @@
       card.innerHTML =
         '<div class="signal-top">' +
           '<span class="pair">' + esc(s.pair) + '</span>' +
-          sessBadge + streamBadge +
+          sessBadge + liveNowBadge + streamBadge +
           '<span class="badge ' + (isBuy ? 'buy' : 'sell') + '">' + esc(s.direction) + '</span>' +
         '</div>' +
         '<div class="levels">' +
@@ -498,6 +524,15 @@
 
     renderMoneyManagement();
     if (!document.getElementById('view-smc').hidden) renderSmcChart();
+  }
+
+  function render() {
+    applyStaticStrings();
+    renderLastSync();
+    renderCycleBar();
+    renderSessionCards();
+    renderStreamPanel();
+    renderSignalCards();
   }
 
   function loadSignals() {
@@ -525,6 +560,6 @@
 
   loadChart(currentTf);
   loadSignals();
-  startCountdownLoop();
+  startTickLoop();
   setInterval(loadSignals, 60000);
 })();
