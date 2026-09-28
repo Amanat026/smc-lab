@@ -242,8 +242,20 @@
   }
 
   function renderStreamPanel() {
-    var s = newestActiveSignal() || newestSignal();
+    var s = newestActiveSignal();
     var stream = s && s.stream;
+    if (!s) {
+      // No active trade: show a neutral verdict instead of a stale closed-trade stream.
+      streamPanel.hidden = false;
+      streamIndicator.className = 'stream-indicator dir-neutral';
+      streamArrow.textContent = '◆';
+      streamDirection.textContent = t('stream_neutral');
+      streamConfidence.textContent = '';
+      streamConfidence.className = 'stream-confidence';
+      streamSummary.textContent = t('no_signals');
+      streamEvidence.innerHTML = '';
+      return;
+    }
     if (!stream || !stream.direction) {
       streamPanel.hidden = true;
       return;
@@ -367,10 +379,14 @@
     var el = document.getElementById('smc-chart');
     if (typeof LightweightCharts === 'undefined') return;
 
-    var signal = newestActiveSignal() || newestSignal();
+    // Map plots ONLY the active trade. Closed signals (tp_hit/sl_hit/no_entry/expired)
+    // never draw zones or Entry/SL/TP lines — the map goes neutral instead.
+    var signal = newestActiveSignal();
     var candles = signal && Array.isArray(signal.candles) ? signal.candles : [];
     if (!signal || !candles.length) {
+      if (smcChart) { smcChart.remove(); smcChart = null; smcCandleSeries = null; }
       el.innerHTML = '';
+      emptyMsg.textContent = t(signal ? 'no_candles' : 'no_active_map');
       emptyMsg.hidden = false;
       return;
     }
@@ -502,6 +518,7 @@
       emptyState.hidden = false;
       renderMoneyManagement();
       renderResults();
+      if (!document.getElementById('view-smc').hidden) renderSmcChart();
       return;
     }
     emptyState.hidden = true;
