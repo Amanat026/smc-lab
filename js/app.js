@@ -1,13 +1,13 @@
 // SMC Liquidity Hunting AI Lab dashboard.
 // TradingView live feed + 15m SMC chart + Underlying Stream panel
 // + 4-session window cards with live countdowns + 24h cycle bar + money management
-// + live Dubai header clock + instant refetch on session transitions.
+// + live Dubai header clock + instant refetch on session transitions
+// + signal lifecycle rendering (active / tp_hit / sl_hit / no_entry / expired + Today's Results).
 (function () {
   var STORAGE_LANG = 'smc-lang';
   var STORAGE_BALANCE = 'smc-balance';
   var STORAGE_RISK = 'smc-risk';
 
-  // Session windows in Asia/Dubai (UTC+4, fixed, no DST) — the ONLY source of window times.
   var SESSIONS = ['pre_london', 'post_london', 'pre_ny', 'post_ny'];
   var SESSION_WINDOWS = {
     pre_london:  { start: 8 * 60 + 30, end: 10 * 60 + 30, label: '08:30 – 10:30' },
@@ -15,6 +15,7 @@
     pre_ny:      { start: 15 * 60 + 30, end: 17 * 60 + 30, label: '15:30 – 17:30' },
     post_ny:     { start: 19 * 60 + 30, end: 21 * 60 + 30, label: '19:30 – 21:30' }
   };
+  var CLOSED_STATUSES = ['tp_hit', 'sl_hit', 'no_entry', 'expired'];
 
   var lang = localStorage.getItem(STORAGE_LANG) || 'en';
   var signals = [];
@@ -45,6 +46,11 @@
   var mmLot = document.getElementById('mm-lot');
   var mmRr = document.getElementById('mm-rr');
   var mmRestriction = document.getElementById('mm-restriction');
+  var resultsSection = document.getElementById('results-section');
+  var resultsToggle = document.getElementById('results-toggle');
+  var resultsBody = document.getElementById('results-body');
+  var resultsList = document.getElementById('results-list');
+  var resultsTotal = document.getElementById('results-total');
 
   function t(key) {
     return (I18N[lang] && I18N[lang][key]) || I18N.en[key] || key;
@@ -97,7 +103,6 @@
     return pad2(h) + ':' + pad2(m) + ':' + pad2(sec);
   }
 
-  // Current Dubai time as a Date (UTC+4 fixed offset, no DST) — always from the live clock.
   function dubaiNow() {
     return new Date(Date.now() + 4 * 3600000);
   }
@@ -112,7 +117,6 @@
     return pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes()) + ':' + pad2(d.getUTCSeconds());
   }
 
-  // The currently live session key, or null between windows.
   function activeSession() {
     var now = dubaiMinutes();
     for (var i = 0; i < SESSIONS.length; i++) {
@@ -120,6 +124,20 @@
       if (now >= w.start && now < w.end) return SESSIONS[i];
     }
     return null;
+  }
+
+  function isActive(s) { return String(s.status || 'active') === 'active'; }
+  function isClosed(s) { return CLOSED_STATUSES.indexOf(String(s.status || '')) !== -1; }
+
+  function statusChip(s) {
+    var st = String(s.status || 'active');
+    return '<span class="status-chip st-' + esc(st) + '">' + esc(t('st_' + st)) + '</span>';
+  }
+
+  function fmtPips(pips) {
+    if (pips == null) return '—';
+    var v = Number(pips);
+    return (v > 0 ? '+' : '') + v.toFixed(0);
   }
 
   /* ================= 24-hour cycle bar ================= */
@@ -140,7 +158,7 @@
     cycleBar.appendChild(now);
   }
 
-  /* ================= Session window cards with live countdowns ================= */
+  /* ================= Session window cards ================= */
   function sessionState(sess) {
     var w = SESSION_WINDOWS[sess];
     var now = dubaiMinutes();
@@ -180,12 +198,9 @@
     tickLive();
   }
 
-  // Master 1-second tick: countdowns, header clock, now-marker, session transitions.
   function tickLive() {
-    // Header live clock
     if (dubaiClockEl) dubaiClockEl.textContent = dubaiClockString();
 
-    // Countdowns
     document.querySelectorAll('.sess-countdown').forEach(function (el) {
       var sess = el.getAttribute('data-sess');
       var w = SESSION_WINDOWS[sess];
@@ -199,18 +214,16 @@
       }
     });
 
-    // Cycle bar now-marker
     var nowMarker = cycleBar.querySelector('.cycle-now');
     if (nowMarker) nowMarker.style.left = (dubaiMinutes() / 1440 * 100) + '%';
 
-    // Session transition detection: re-render cards AND instantly refetch signals
     var statesNow = SESSIONS.map(sessionState).join(',');
     if (statesNow !== tickLive._last) {
       var isTransition = typeof tickLive._last !== 'undefined';
       tickLive._last = statesNow;
       renderSessionCards();
-      renderSignalCards(); // badges reflect the new active session immediately
-      if (isTransition) loadSignals(); // fresh data at window boundary, no manual refresh
+      renderSignalCards();
+      if (isTransition) loadSignals();
     }
   }
 
@@ -220,8 +233,16 @@
   }
 
   /* ================= Underlying Stream panel ================= */
+  function newestActiveSignal() {
+    var actives = signals.filter(isActive);
+    if (!actives.length) return null;
+    return actives.slice().sort(function (a, b) {
+      return new Date(b.published_at) - new Date(a.published_at);
+    })[0];
+  }
+
   function renderStreamPanel() {
-    var s = newestSignal();
+    var s = newestActiveSignal() || newestSignal();
     var stream = s && s.stream;
     if (!stream || !stream.direction) {
       streamPanel.hidden = true;
@@ -289,7 +310,6 @@
     });
   });
 
-  /* ================= View tabs ================= */
   document.querySelectorAll('.view-tab').forEach(function (tab) {
     tab.addEventListener('click', function () {
       document.querySelectorAll('.view-tab').forEach(function (x) { x.classList.remove('active'); });
@@ -302,7 +322,7 @@
     });
   });
 
-  /* ================= Custom candlestick chart with SMC markings (15m execution) ================= */
+  /* ================= Custom candlestick chart ================= */
   function zoneColor(cls) {
     return {
       bsl: 'rgba(255, 176, 32, 0.30)',
@@ -347,7 +367,7 @@
     var el = document.getElementById('smc-chart');
     if (typeof LightweightCharts === 'undefined') return;
 
-    var signal = newestSignal();
+    var signal = newestActiveSignal() || newestSignal();
     var candles = signal && Array.isArray(signal.candles) ? signal.candles : [];
     if (!signal || !candles.length) {
       el.innerHTML = '';
@@ -400,7 +420,7 @@
   }
 
   /* ================= Money management ================= */
-  var PIP_VALUE_PER_LOT = 10; // XAUUSD: $10 per pip per standard lot (100 oz)
+  var PIP_VALUE_PER_LOT = 10;
 
   function slDistancePips(s) {
     if (typeof s.sl_pips === 'number' && s.sl_pips > 0) return s.sl_pips;
@@ -422,7 +442,7 @@
   }
 
   function renderMoneyManagement() {
-    var s = newestSignal();
+    var s = newestActiveSignal();
     if (!s) {
       mmLot.textContent = '—';
       mmRr.textContent = '—';
@@ -462,23 +482,31 @@
     });
   });
 
-  /* ================= Signal cards ================= */
+  /* ================= Signal cards (active) ================= */
+  function cardClass(s) {
+    var st = String(s.status || 'active');
+    if (st === 'tp_hit') return ' card-tp-hit';
+    if (st === 'sl_hit') return ' card-sl-hit';
+    if (st === 'no_entry' || st === 'expired') return ' card-no-entry';
+    return '';
+  }
+
   function renderSignalCards() {
     grid.innerHTML = '';
+    var liveSess = activeSession();
+    var actives = signals.filter(isActive).sort(function (a, b) {
+      return new Date(b.published_at) - new Date(a.published_at);
+    });
 
-    if (!signals.length) {
+    if (!actives.length) {
       emptyState.hidden = false;
       renderMoneyManagement();
+      renderResults();
       return;
     }
     emptyState.hidden = true;
 
-    var liveSess = activeSession();
-    var sorted = signals.slice().sort(function (a, b) {
-      return new Date(b.published_at) - new Date(a.published_at);
-    });
-
-    sorted.forEach(function (s) {
+    actives.forEach(function (s) {
       var isBuy = String(s.direction).toUpperCase() === 'BUY';
       var content = lang === 'bn' ? s.content_bn : s.content_en;
       var refLine = (typeof s.reference_price === 'number')
@@ -487,10 +515,8 @@
       var slPipsLine = '<span>' + esc(t('sl_pips')) + ': <strong>' + esc(slDistancePips(s).toFixed(0)) + ' ' + esc(t('pips')) + '</strong></span>';
       var rrLine = '<span>' + esc(t('rr_label')) + ': <strong>1 : ' + esc(rrRatio(s).toFixed(1)) + '</strong></span>';
       var sessKey = s.session || 'manual';
-      // Badge shows the session label + its CONFIG window (never a stale per-signal time string).
       var windowLabel = SESSION_WINDOWS[sessKey] ? ' · ' + SESSION_WINDOWS[sessKey].label : '';
       var sessBadge = '<span class="session-badge sb-' + esc(sessKey) + '">' + esc(sessionLabel(s)) + esc(windowLabel) + '</span>';
-      // Live indicator when this card's session is the one currently in its window.
       var liveNowBadge = (liveSess && sessKey === liveSess)
         ? '<span class="sess-chip chip-live">' + esc(t('sess_live')) + '</span>'
         : '';
@@ -515,7 +541,7 @@
           refLine + slPipsLine + rrLine +
           '<span>' + esc(t('max_lot')) + ': <strong>' + esc(s.max_lot_size) + '</strong></span>' +
           '<span>' + esc(t('volatility')) + ': <strong>' + esc(s.volatility_range) + '</strong></span>' +
-          '<span class="status ' + esc(s.status || '') + '">' + esc(s.status) + '</span>' +
+          statusChip(s) +
         '</div>' +
         '<div class="content">' + esc(content) + '</div>' +
         '<div class="published">' + esc(t('updated')) + ': ' + esc(formatDate(s.published_at)) + '</div>';
@@ -523,8 +549,64 @@
     });
 
     renderMoneyManagement();
+    renderResults();
     if (!document.getElementById('view-smc').hidden) renderSmcChart();
   }
+
+  /* ================= Today's Results (closed signals) ================= */
+  function renderResults() {
+    var today = new Date().toISOString().slice(0, 10);
+    var closed = signals.filter(function (s) {
+      return isClosed(s) && String(s.published_at || '').slice(0, 10) === today;
+    }).sort(function (a, b) {
+      return new Date(b.closed_at || b.published_at) - new Date(a.closed_at || a.published_at);
+    });
+
+    if (!closed.length) {
+      resultsSection.hidden = true;
+      return;
+    }
+    resultsSection.hidden = false;
+
+    var total = closed.reduce(function (sum, s) {
+      return sum + (typeof s.result_pips === 'number' ? s.result_pips : 0);
+    }, 0);
+    resultsTotal.textContent = (total > 0 ? '+' : '') + total.toFixed(0) + ' ' + t('pips');
+    resultsTotal.className = 'results-total ' + (total > 0 ? 'pos' : total < 0 ? 'neg' : '');
+
+    resultsList.innerHTML = '';
+    closed.forEach(function (s) {
+      var isBuy = String(s.direction).toUpperCase() === 'BUY';
+      var pipsClass = s.result_pips > 0 ? 'pos' : s.result_pips < 0 ? 'neg' : 'zero';
+      var note = String(s.status) === 'no_entry' ? '<div class="no-entry-note">' + esc(t('no_entry_note')) + '</div>' : '';
+      var rc = document.createElement('div');
+      rc.className = 'result-card';
+      rc.innerHTML =
+        '<div class="rc-top">' +
+          '<span class="pair">' + esc(s.pair) + '</span>' +
+          '<span class="badge ' + (isBuy ? 'buy' : 'sell') + '">' + esc(s.direction) + '</span>' +
+          statusChip(s) +
+        '</div>' +
+        '<div class="levels">' +
+          '<div class="level lv-entry"><div class="label">' + esc(t('entry')) + '</div><div class="value">' + esc(s.entry) + '</div></div>' +
+          '<div class="level lv-sl"><div class="label">' + esc(t('stop_loss')) + '</div><div class="value">' + esc(s.stop_loss) + '</div></div>' +
+          '<div class="level lv-tp"><div class="label">' + esc(t('take_profit')) + '</div><div class="value">' + esc(s.take_profit) + '</div></div>' +
+        '</div>' +
+        '<div class="rc-top">' +
+          '<span class="rc-meta">' + esc(sessionLabel(s)) + (s.session_time_dubai ? ' · ' + esc(s.session_time_dubai) : '') + '</span>' +
+          '<span class="result-pips ' + pipsClass + '">' + esc(fmtPips(s.result_pips)) + ' ' + esc(t('pips')) + '</span>' +
+        '</div>' +
+        (s.closed_at ? '<div class="rc-meta">' + esc(t('closed_at')) + ': ' + esc(formatDate(s.closed_at)) + '</div>' : '') +
+        note;
+      resultsList.appendChild(rc);
+    });
+  }
+
+  resultsToggle.addEventListener('click', function () {
+    var open = resultsBody.hidden;
+    resultsBody.hidden = !open;
+    resultsToggle.classList.toggle('open', open);
+  });
 
   function render() {
     applyStaticStrings();
