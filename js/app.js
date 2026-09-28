@@ -1,6 +1,6 @@
 // SMC Liquidity Hunting AI Lab dashboard.
 // TradingView live feed + custom 15m candlestick chart with SMC markings
-// + 4-session timeline + dynamic balance-based money management + hourly auto-refresh.
+// + Underlying Stream panel + 4-session timeline + money management + auto-refresh.
 (function () {
   var STORAGE_LANG = 'smc-lang';
   var STORAGE_BALANCE = 'smc-balance';
@@ -24,6 +24,13 @@
   var toggleBtn = document.getElementById('lang-toggle');
   var lastSyncEl = document.getElementById('last-sync-time');
   var stripEl = document.getElementById('session-strip');
+  var streamPanel = document.getElementById('stream-panel');
+  var streamConfidence = document.getElementById('stream-confidence');
+  var streamIndicator = document.getElementById('stream-indicator');
+  var streamArrow = document.getElementById('stream-arrow');
+  var streamDirection = document.getElementById('stream-direction');
+  var streamSummary = document.getElementById('stream-summary');
+  var streamEvidence = document.getElementById('stream-evidence');
   var mmBalance = document.getElementById('mm-balance');
   var mmLot = document.getElementById('mm-lot');
   var mmRr = document.getElementById('mm-rr');
@@ -69,11 +76,37 @@
     if (lastSyncAt) lastSyncEl.textContent = formatDate(lastSyncAt);
   }
 
+  /* ================= Underlying Stream panel ================= */
+  function renderStreamPanel() {
+    var s = newestSignal();
+    var stream = s && s.stream;
+    if (!stream || !stream.direction) {
+      streamPanel.hidden = true;
+      return;
+    }
+    var dir = String(stream.direction).toLowerCase();
+    var conf = String(stream.confidence || 'medium').toLowerCase();
+
+    streamPanel.hidden = false;
+    streamIndicator.className = 'stream-indicator dir-' + (dir === 'bullish' ? 'bullish' : dir === 'bearish' ? 'bearish' : 'neutral');
+    streamArrow.textContent = dir === 'bullish' ? '▲' : dir === 'bearish' ? '▼' : '◆';
+    streamDirection.textContent = dir === 'bullish' ? t('stream_bullish') : dir === 'bearish' ? t('stream_bearish') : t('stream_neutral');
+    streamConfidence.textContent = t('stream_confidence') + ': ' + conf.toUpperCase();
+    streamConfidence.className = 'stream-confidence conf-' + conf;
+    streamSummary.textContent = lang === 'bn' ? (stream.summary_bn || stream.summary_en || '') : (stream.summary_en || '');
+
+    streamEvidence.innerHTML = '';
+    (stream.htf_evidence || []).forEach(function (ev) {
+      var li = document.createElement('li');
+      li.textContent = ev;
+      streamEvidence.appendChild(li);
+    });
+  }
+
   /* ================= Session timeline strip ================= */
   function renderSessionStrip() {
     var today = new Date().toISOString().slice(0, 10);
     var nowUtcMinutes = new Date().getUTCHours() * 60 + new Date().getUTCMinutes();
-    // Dubai = UTC+4
     var nowDubaiMinutes = (nowUtcMinutes + 240) % 1440;
 
     stripEl.innerHTML = '';
@@ -316,6 +349,7 @@
     applyStaticStrings();
     renderLastSync();
     renderSessionStrip();
+    renderStreamPanel();
     grid.innerHTML = '';
 
     if (!signals.length) {
@@ -340,12 +374,16 @@
       var sessKey = s.session || 'manual';
       var sessBadge = '<span class="session-badge sb-' + esc(sessKey) + '">' + esc(sessionLabel(s)) +
         (s.session_time_dubai ? ' · ' + esc(s.session_time_dubai) : '') + '</span>';
+      var streamBadge = (s.stream && s.stream.direction)
+        ? '<span class="stream-align-badge' + (String(s.stream.direction).toLowerCase() === 'bearish' ? ' sab-bearish' : '') + '">' +
+          (String(s.stream.direction).toLowerCase() === 'bearish' ? '▼ ' : '▲ ') + esc(t('stream_aligned')) + '</span>'
+        : '';
       var card = document.createElement('article');
       card.className = 'signal-card ' + (isBuy ? 'card-buy' : 'card-sell');
       card.innerHTML =
         '<div class="signal-top">' +
           '<span class="pair">' + esc(s.pair) + '</span>' +
-          sessBadge +
+          sessBadge + streamBadge +
           '<span class="badge ' + (isBuy ? 'buy' : 'sell') + '">' + esc(s.direction) + '</span>' +
         '</div>' +
         '<div class="levels">' +
