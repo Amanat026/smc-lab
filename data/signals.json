@@ -1,0 +1,16 @@
+[
+  {
+    "id": "xauusd-2026-01-15-001",
+    "published_at": "2026-01-15T07:00:00Z",
+    "pair": "XAUUSD",
+    "direction": "BUY",
+    "entry": 2401.5,
+    "stop_loss": 2386.5,
+    "take_profit": 2428.0,
+    "max_lot_size": 0.05,
+    "volatility_range": "±38 pips (2386-2428)",
+    "status": "active",
+    "content_en": "Fundamental Sentiment: FOMC minutes today 18:00 UTC — dovish hold largely priced in; upside surprise risk on gold. Retail trap filtered: pre-London dip was a liquidity grab.\n\nTechnical/SMC Breakdown: SSL swept at 2398 (previous week low) with 4H ChoCH. Unmitigated bullish Order Block 2400-2403, FVG at 2405-2408. BSL rests at 2432.\n\nHistorical Volatility/Max Spike Projection: recent Daily max spike 38 pips; projected boundaries 2386-2428 if a news spike hits.\n\nRisk & Money Management: balance $500, risk 1.5% = $7.50, SL 15 pips → max 0.05 lots including spike buffer. Given your account balance and current volatility, do not exceed 0.05 lot size.\n\nActionable Signal: BUY 2401.5 | SL 2386.5 | TP 2428 (inside projected upper boundary).",
+    "content_bn": "ফান্ডামেন্টাল সেন্টিমেন্ট: আজ 18:00 UTC-তে FOMC মিনিট — ডভিশ হোল মূলত প্রাইস-ইন; গোল্ডে উপরের দিকে চমকের ঝুঁকি। রিটেইল ট্র্যাপ ফিল্টার করা হয়েছে: প্রি-লন্ডন ডিপ ছিল লিকুইডিটি গ্র্যাব।\n\nটেকনিক্যাল/SMC বিশ্লেষণ: 2398-এ SSL সুইপ (আগের সপ্তাহের লো) এবং 4H ChoCH। আনমিটিগেটেড বুলিশ অর্ডার ব্লক 2400-2403, FVG 2405-2408। BSL রয়েছে 2432-এ।\n\nহিস্টরিক্যাল ভলাটিলিটি/ম্যাক্স স্পাইক প্রজেকশন: সাম্প্রতিক ডেইলি ম্যাক্স স্পাইক 38 পিপস; নিউজ স্পাইক এলে সম্ভাব্য সীমা 2386-2428।\n\nঝুঁকি ও মানি ম্যানেজমেন্ট: ব্যালেন্স $500, ঝুঁকি 1.5% = $7.50, SL 15 পিপস → স্পাইক বাফারসহ সর্বোচ্চ 0.05 লট। আপনার অ্যাকাউন্ট ব্যালেন্স ও বর্তমান ভলাটিলিটি বিবেচনায়, 0.05 লট সাইজের বেশি ট্রেড করবেন না।\n\nঅ্যাকশনেবল সিগন্যাল: BUY 2401.5 | SL 2386.5 | TP 2428 (প্রজেক্টেড ঊর্ধ্ব সীমার মধ্যে)।"
+  }
+]
