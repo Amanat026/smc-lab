@@ -18,6 +18,7 @@
   --ob-bear: #f43f5e;
   --fvg: #38bdf8;
   --gold: #f0b90b;
+  --gold-bright: #ffd700;
   --radius: 14px;
   --glow-buy: 0 0 12px rgba(0, 229, 160, 0.55);
   --glow-sell: 0 0 12px rgba(255, 61, 113, 0.55);
@@ -45,8 +46,8 @@ body {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--panel-border);
-  box-shadow: 0 4px 30px rgba(0,0,0,0.35);
-  padding: 14px 0;
+  box-shadow: 0 4px 30px rgba(0,0,0,0.35), 0 1px 0 rgba(240,185,11,0.15);
+  padding: 16px 0;
   position: sticky;
   top: 0;
   z-index: 10;
@@ -54,14 +55,20 @@ body {
 
 .header-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .brand { display: flex; align-items: center; gap: 12px; }
-.brand-logo { font-size: 26px; filter: drop-shadow(0 0 8px rgba(0,229,255,0.6)); }
-.brand h1 {
-  font-size: 1.15rem;
+.brand-logo {
+  font-size: 30px;
+  filter: drop-shadow(0 0 10px rgba(240,185,11,0.7));
+}
+.brand-title {
+  font-size: 1.3rem;
   font-weight: 700;
-  background: linear-gradient(90deg, var(--accent), var(--buy));
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  background: linear-gradient(92deg, #ffe38a 0%, var(--gold-bright) 35%, var(--gold) 70%, #b8860b 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 10px rgba(240,185,11,0.45)) drop-shadow(0 0 26px rgba(240,185,11,0.18));
 }
 .subtitle { color: var(--muted); font-size: 0.8rem; }
 
@@ -230,13 +237,15 @@ main { flex: 1; padding: 24px 0 48px; display: flex; flex-direction: column; gap
 
 @media (min-width: 768px) {
   .signals-grid { grid-template-columns: repeat(2, 1fr); }
-  .brand h1 { font-size: 1.3rem; }
+  .brand-title { font-size: 1.55rem; }
+  .brand-logo { font-size: 34px; }
   .tv-chart, .smc-chart { height: 480px; }
   .mm-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (min-width: 1024px) {
   .signals-grid { grid-template-columns: repeat(3, 1fr); }
+  .brand-title { font-size: 1.7rem; }
   .tv-chart, .smc-chart { height: 540px; }
   .mm-grid { grid-template-columns: repeat(4, 1fr); }
 }

@@ -1,7 +1,7 @@
 // Bilingual UI dictionary for SMC Liquidity Hunting AI Lab dashboard.
 const I18N = {
   en: {
-    title: 'SMC Liquidity Hunting AI Lab',
+    title: "Amanat's Gold Signal",
     subtitle: 'Institutional Forex & Gold (XAUUSD) Signals',
     signals_heading: 'Latest Signals',
     live_chart: 'XAUUSD Charts',
@@ -43,7 +43,7 @@ const I18N = {
     lang_button: 'বাংলা'
   },
   bn: {
-    title: 'এসএমসি লিকুইডিটি হান্টিং এআই ল্যাব',
+    title: 'আমানতস গোল্ড সিগন্যাল',
     subtitle: 'ইনস্টিটিউশনাল ফরেক্স ও গোল্ড (XAUUSD) সিগন্যাল',
     signals_heading: 'সর্বশেষ সিগন্যালসমূহ',
     live_chart: 'XAUUSD চার্ট',
