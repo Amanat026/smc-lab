@@ -1,0 +1,83 @@
+/* ---------- Rich session window cards + 24h cycle bar ---------- */
+.cycle-bar-wrap { display: flex; flex-direction: column; gap: 6px; }
+.cycle-bar {
+  position: relative;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--panel-border);
+  overflow: hidden;
+}
+.cycle-seg {
+  position: absolute;
+  top: 0; bottom: 0;
+  opacity: 0.55;
+}
+.cycle-seg.seg-pre_london { background: linear-gradient(90deg, rgba(0,229,255,0.35), rgba(0,229,255,0.15)); }
+.cycle-seg.seg-post_london { background: linear-gradient(90deg, rgba(240,185,11,0.35), rgba(240,185,11,0.15)); }
+.cycle-seg.seg-pre_ny { background: linear-gradient(90deg, rgba(168,85,247,0.35), rgba(168,85,247,0.15)); }
+.cycle-seg.seg-post_ny { background: linear-gradient(90deg, rgba(255,61,158,0.35), rgba(255,61,158,0.15)); }
+.cycle-now {
+  position: absolute;
+  top: -2px; bottom: -2px;
+  width: 2px;
+  background: #fff;
+  box-shadow: 0 0 8px rgba(255,255,255,0.8);
+}
+.cycle-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.62rem;
+  color: var(--muted);
+}
+
+.session-card-rich {
+  background: var(--panel);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--panel-border);
+  border-left-width: 3px;
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: box-shadow 0.2s ease;
+}
+.session-card-rich .sess-name { font-weight: 700; font-size: 0.92rem; }
+.session-card-rich .sess-window { font-size: 0.78rem; font-weight: 700; color: var(--text); letter-spacing: 0.02em; }
+.session-card-rich .sess-dur {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: var(--muted);
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  padding: 1px 8px;
+  margin-left: 6px;
+}
+.session-card-rich .sess-focus { font-size: 0.72rem; color: var(--muted); line-height: 1.45; }
+.session-card-rich .sess-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+
+.sess-chip {
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid;
+}
+.sess-chip.chip-live { color: var(--buy); border-color: var(--buy); background: rgba(0,229,160,0.10); box-shadow: 0 0 10px rgba(0,229,160,0.35); animation: pulse 2s ease-in-out infinite; }
+.sess-chip.chip-upcoming { color: var(--accent); border-color: var(--accent); background: rgba(0,229,255,0.08); }
+.sess-chip.chip-expired { color: var(--muted); border-color: var(--panel-border); background: rgba(139,152,169,0.06); }
+
+.sess-countdown { font-size: 0.75rem; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+.sess-countdown .cd-label { color: var(--muted); font-weight: 600; margin-right: 4px; font-size: 0.68rem; }
+
+.session-card-rich.is-live { box-shadow: 0 0 24px rgba(0,229,160,0.12); }
+.session-card-rich.is-expired { opacity: 0.6; }
+
+.session-card-rich.s-pre-london { border-left-color: var(--sess-pre-london); }
+.session-card-rich.s-post-london { border-left-color: var(--sess-post-london); }
+.session-card-rich.s-pre-ny { border-left-color: var(--sess-pre-ny); }
+.session-card-rich.s-post-ny { border-left-color: var(--sess-post-ny); }
