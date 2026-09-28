@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Amanat's Gold Signal - Institutional Forex & Gold Signals</title>
   <meta name="description" content="Real-time XAUUSD institutional SMC analysis with Underlying Stream detection across 4 daily sessions (London & New York). Organized and Analyzed by Amanat Ullah." />
-
-  <!-- Open Graph -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Amanat's Gold Signal - Institutional Forex & Gold Signals" />
   <meta property="og:description" content="Real-time XAUUSD institutional SMC analysis with Underlying Stream detection across 4 daily sessions (London & New York). Organized and Analyzed by Amanat Ullah." />
@@ -15,14 +13,11 @@
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="Amanat's Gold Signal — institutional XAUUSD session-based signal dashboard" />
-
-  <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Amanat's Gold Signal - Institutional Forex & Gold Signals" />
   <meta name="twitter:description" content="Real-time XAUUSD institutional SMC analysis with Underlying Stream detection across 4 daily sessions (London & New York). Organized and Analyzed by Amanat Ullah." />
   <meta name="twitter:image" content="https://smc-lab-eight.vercel.app/assets/og-banner.svg" />
   <meta name="twitter:image:alt" content="Amanat's Gold Signal — institutional XAUUSD session-based signal dashboard" />
-
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -50,7 +45,6 @@
     </div>
   </header>
 
-  <!-- Live ticker tape: real-time XAUUSD + majors -->
   <div class="ticker-wrap">
     <div class="tradingview-widget-container">
       <div class="tradingview-widget-container__widget"></div>
@@ -73,7 +67,6 @@
   </div>
 
   <main class="container">
-    <!-- Underlying Stream panel -->
     <section id="stream-panel" class="stream-panel" hidden>
       <div class="stream-head">
         <h2 class="section-heading" data-i18n="stream_heading">Underlying Stream</h2>
@@ -91,7 +84,6 @@
       </div>
     </section>
 
-    <!-- Daily session timeline with 24h cycle bar -->
     <section class="session-strip-wrap">
       <h2 class="section-heading" data-i18n="sessions_heading">Today's Sessions</h2>
       <div class="cycle-bar-wrap">
@@ -101,7 +93,6 @@
       <div id="session-strip" class="session-strip"></div>
     </section>
 
-    <!-- Chart section -->
     <section class="chart-section">
       <div class="chart-header">
         <h2 class="section-heading" data-i18n="live_chart">XAUUSD Charts</h2>
@@ -117,11 +108,9 @@
           </div>
         </div>
       </div>
-
       <div id="view-live">
         <div id="tv-chart" class="tv-chart"></div>
       </div>
-
       <div id="view-smc" hidden>
         <div class="smc-chart-wrap">
           <div id="smc-chart" class="smc-chart"></div>
@@ -140,7 +129,6 @@
       </div>
     </section>
 
-    <!-- Money management -->
     <section class="mm-panel">
       <h2 class="section-heading" data-i18n="mm_heading">Money Management</h2>
       <div class="mm-grid">
@@ -170,9 +158,8 @@
 
     <h2 class="section-heading" data-i18n="signals_heading">Active Signals</h2>
     <div id="signals" class="signals-grid" aria-live="polite"></div>
-    <p id="empty-state" class="empty-state" data-i18n="no_signals" hidden>No signals published yet. Check back before the next session.</p>
+    <p id="empty-state" class="empty-state" data-i18n="no_signals" hidden>No active signals right now. Waiting for the next session setup.</p>
 
-    <!-- Today's Results: closed signals history -->
     <section id="results-section" class="results-section" hidden>
       <button id="results-toggle" class="results-toggle" type="button">
         <span data-i18n="results_heading">Today's Results</span>

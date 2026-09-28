@@ -17,6 +17,9 @@
     "reference_price": 4146.3,
     "sl_pips": 135,
     "rr": 2.0,
+    "entry_valid_until": "2026-09-28T06:30:00Z",
+    "closed_at": null,
+    "result_pips": null,
     "stream": {
       "direction": "bullish",
       "confidence": "high",
