@@ -7,6 +7,9 @@
   --buy: #16c784;
   --sell: #ea3943;
   --accent: #00b8be;
+  --bsl: #ea3943;
+  --ssl: #16c784;
+  --fvg: #f0b90b;
   --radius: 12px;
 }
 
@@ -52,21 +55,107 @@ body {
 }
 .lang-toggle:hover { opacity: 0.85; }
 
-main { flex: 1; padding: 24px 0 48px; }
-.section-heading { font-size: 1.05rem; margin-bottom: 16px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.ticker-wrap { border-bottom: 1px solid var(--panel-border); background: var(--panel); }
 
-/* Mobile-first: single column */
+main { flex: 1; padding: 24px 0 48px; display: flex; flex-direction: column; gap: 28px; }
+.section-heading { font-size: 1.05rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* Chart section */
+.chart-section { display: flex; flex-direction: column; gap: 12px; }
+.chart-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+
+.tf-selector { display: flex; gap: 6px; }
+.tf-btn {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tf-btn.active { background: var(--accent); color: #04141a; border-color: var(--accent); }
+
+.tv-chart {
+  height: 420px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--panel);
+}
+.tv-chart iframe { border: 0; }
+
+/* SMC overlay map */
+.smc-overlay {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+.overlay-heading { font-size: 0.95rem; margin-bottom: 12px; }
+
+.smc-map {
+  position: relative;
+  height: 320px;
+  background: repeating-linear-gradient(to bottom, rgba(255,255,255,0.03) 0 1px, transparent 1px 40px);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.smc-price-axis {
+  position: absolute; right: 0; top: 0; bottom: 0; width: 64px;
+  border-left: 1px solid var(--panel-border);
+  font-size: 0.65rem; color: var(--muted);
+  pointer-events: none;
+}
+.smc-price-axis span { position: absolute; right: 6px; transform: translateY(-50%); }
+
+.zone { position: absolute; left: 0; right: 64px; opacity: 0.35; border-radius: 2px; }
+.zone-label {
+  position: absolute; left: 8px;
+  font-size: 0.68rem; font-weight: 700;
+  padding: 1px 6px; border-radius: 4px;
+  background: rgba(0,0,0,0.55); color: var(--text);
+  transform: translateY(-50%); white-space: nowrap;
+}
+.zone.bsl { background: var(--bsl); }
+.zone.ssl { background: var(--ssl); }
+.zone.ob-bull { background: #1f6f54; opacity: 0.5; }
+.zone.ob-bear { background: #7a2f35; opacity: 0.5; }
+.zone.fvg { background: var(--fvg); opacity: 0.3; border: 1px dashed var(--fvg); }
+
+.level-line { position: absolute; left: 0; right: 64px; height: 0; border-top: 2px dashed; }
+.level-line .zone-label { right: 8px; left: auto; }
+.level-line.entry { border-color: var(--accent); }
+.level-line.sl { border-color: var(--sell); }
+.level-line.tp { border-color: var(--buy); }
+
+.smc-legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 12px; font-size: 0.72rem; color: var(--muted); }
+.legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; display: inline-block; }
+.sw-bsl { background: var(--bsl); }
+.sw-ssl { background: var(--ssl); }
+.sw-ob-bull { background: #1f6f54; }
+.sw-ob-bear { background: #7a2f35; }
+.sw-fvg { background: var(--fvg); }
+.sw-entry { background: var(--accent); }
+.sw-sl { background: var(--sell); }
+.sw-tp { background: var(--buy); }
+
+/* Signals grid: mobile-first single column */
 .signals-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
 
-/* Tablet: two columns */
 @media (min-width: 768px) {
   .signals-grid { grid-template-columns: repeat(2, 1fr); }
   .brand h1 { font-size: 1.3rem; }
+  .tv-chart { height: 480px; }
 }
 
-/* Desktop: three columns */
 @media (min-width: 1024px) {
   .signals-grid { grid-template-columns: repeat(3, 1fr); }
+  .tv-chart { height: 540px; }
 }
 
 .signal-card {

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SMC Liquidity Hunting AI Lab</title>
-  <meta name="description" content="Institutional SMC Forex & Gold (XAUUSD) trade signals — bilingual English/Bengali dashboard." />
+  <meta name="description" content="Institutional SMC Forex & Gold (XAUUSD) trade signals — live TradingView charts, bilingual English/Bengali dashboard." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+Bengali:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -24,7 +24,58 @@
     </div>
   </header>
 
+  <!-- Live ticker tape: real-time XAUUSD + majors -->
+  <div class="ticker-wrap">
+    <div class="tradingview-widget-container">
+      <div class="tradingview-widget-container__widget"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js" async>
+      {
+        "symbols": [
+          { "proName": "OANDA:XAUUSD", "title": "Gold / USD" },
+          { "proName": "FX:EURUSD", "title": "EUR / USD" },
+          { "proName": "FX:GBPUSD", "title": "GBP / USD" },
+          { "proName": "FX:USDJPY", "title": "USD / JPY" }
+        ],
+        "showSymbolLogo": true,
+        "isTransparent": true,
+        "displayMode": "adaptive",
+        "colorTheme": "dark",
+        "locale": "en"
+      }
+      </script>
+    </div>
+  </div>
+
   <main class="container">
+    <!-- Live chart section -->
+    <section class="chart-section">
+      <div class="chart-header">
+        <h2 class="section-heading" data-i18n="live_chart">Live XAUUSD Chart</h2>
+        <div class="tf-selector" role="group" aria-label="Timeframe">
+          <button class="tf-btn" data-tf="W" data-i18n="tf_w1">W1</button>
+          <button class="tf-btn active" data-tf="D" data-i18n="tf_d1">D1</button>
+          <button class="tf-btn" data-tf="240" data-i18n="tf_4h">4H</button>
+        </div>
+      </div>
+      <div id="tv-chart" class="tv-chart"></div>
+
+      <!-- Visual SMC overlay panel: zones + levels mapped by price -->
+      <div id="smc-overlay" class="smc-overlay" hidden>
+        <h3 class="overlay-heading" data-i18n="smc_structure">SMC Market Structure</h3>
+        <div id="smc-map" class="smc-map" aria-live="polite"></div>
+        <div class="smc-legend">
+          <span class="legend-item"><i class="sw sw-bsl"></i><span data-i18n="legend_bsl">BSL zone</span></span>
+          <span class="legend-item"><i class="sw sw-ssl"></i><span data-i18n="legend_ssl">SSL zone</span></span>
+          <span class="legend-item"><i class="sw sw-ob-bull"></i><span data-i18n="legend_ob_bull">Bullish OB</span></span>
+          <span class="legend-item"><i class="sw sw-ob-bear"></i><span data-i18n="legend_ob_bear">Bearish OB</span></span>
+          <span class="legend-item"><i class="sw sw-fvg"></i><span data-i18n="legend_fvg">FVG</span></span>
+          <span class="legend-item"><i class="sw sw-entry"></i><span data-i18n="legend_entry">Entry</span></span>
+          <span class="legend-item"><i class="sw sw-sl"></i><span data-i18n="legend_sl">Stop Loss</span></span>
+          <span class="legend-item"><i class="sw sw-tp"></i><span data-i18n="legend_tp">Take Profit</span></span>
+        </div>
+      </div>
+    </section>
+
     <h2 class="section-heading" data-i18n="signals_heading">Latest Signals</h2>
     <div id="signals" class="signals-grid" aria-live="polite"></div>
     <p id="empty-state" class="empty-state" data-i18n="no_signals" hidden>No signals published yet. Check back before the next session.</p>
