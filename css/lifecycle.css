@@ -1,0 +1,93 @@
+/* ---------- Signal lifecycle states + Today's Results ---------- */
+.dubai-clock {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--gold);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.dot-gold { background: var(--gold) !important; box-shadow: 0 0 8px var(--gold) !important; }
+
+/* Status chips on signal cards */
+.status-chip {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 12px;
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.status-chip.st-active { color: var(--accent); border-color: var(--accent); background: rgba(0,229,255,0.08); box-shadow: 0 0 10px rgba(0,229,255,0.3); animation: pulse 2s ease-in-out infinite; }
+.status-chip.st-tp_hit { color: var(--buy); border-color: var(--buy); background: rgba(0,229,160,0.12); box-shadow: var(--glow-buy); }
+.status-chip.st-sl_hit { color: var(--sell); border-color: var(--sell); background: rgba(255,61,113,0.10); }
+.status-chip.st-no_entry, .status-chip.st-expired { color: var(--muted); border-color: var(--panel-border); background: rgba(139,152,169,0.06); }
+
+/* TP hit celebration state */
+.signal-card.card-tp-hit {
+  border-top: 3px solid var(--gold);
+  background: linear-gradient(160deg, rgba(240,185,11,0.10), rgba(0,229,160,0.06), var(--panel));
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3), 0 0 28px rgba(240,185,11,0.18);
+}
+.signal-card.card-sl-hit { opacity: 0.75; border-top: 3px solid var(--sell); }
+.signal-card.card-no-entry, .signal-card.card-expired { opacity: 0.6; }
+
+.result-pips { font-size: 0.95rem; font-weight: 700; }
+.result-pips.pos { color: var(--buy); text-shadow: 0 0 10px rgba(0,229,160,0.5); }
+.result-pips.neg { color: var(--sell); }
+.result-pips.zero { color: var(--muted); }
+
+.no-entry-note {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--gold);
+  text-align: center;
+  padding: 10px;
+  border: 1px dashed rgba(240,185,11,0.4);
+  border-radius: 8px;
+  background: rgba(240,185,11,0.05);
+}
+
+/* Today's Results section */
+.results-section { display: flex; flex-direction: column; gap: 10px; }
+.results-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease;
+}
+.results-toggle:hover { border-color: var(--accent); }
+.results-total { font-variant-numeric: tabular-nums; font-size: 0.9rem; }
+.results-total.pos { color: var(--buy); }
+.results-total.neg { color: var(--sell); }
+.results-caret { margin-left: auto; color: var(--muted); transition: transform 0.2s ease; }
+.results-toggle.open .results-caret { transform: rotate(180deg); }
+
+.results-list { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 768px) { .results-list { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 1024px) { .results-list { grid-template-columns: repeat(3, 1fr); } }
+
+.result-card {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.result-card .rc-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.result-card .rc-meta { font-size: 0.72rem; color: var(--muted); }

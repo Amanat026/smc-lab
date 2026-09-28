@@ -29,6 +29,7 @@
   <link rel="stylesheet" href="css/styles.css" />
   <link rel="stylesheet" href="css/stream.css" />
   <link rel="stylesheet" href="css/sessions.css" />
+  <link rel="stylesheet" href="css/lifecycle.css" />
   <script src="https://unpkg.com/lightweight-charts@4.2.0/dist/lightweight-charts.standalone.production.js" defer></script>
 </head>
 <body>
@@ -42,6 +43,7 @@
         </div>
       </div>
       <div class="header-right">
+        <span class="dubai-clock"><i class="dot dot-gold"></i><span data-i18n="dubai_time">Dubai</span> <span id="dubai-clock-time">—:—:—</span></span>
         <span class="last-updated"><i class="dot"></i><span data-i18n="last_sync">Last sync</span>: <span id="last-sync-time">—</span></span>
         <button id="lang-toggle" class="lang-toggle" type="button" aria-label="Toggle language">বাংলা</button>
       </div>
@@ -99,7 +101,7 @@
       <div id="session-strip" class="session-strip"></div>
     </section>
 
-    <!-- Chart section: tabbed Live feed / SMC candlestick map -->
+    <!-- Chart section -->
     <section class="chart-section">
       <div class="chart-header">
         <h2 class="section-heading" data-i18n="live_chart">XAUUSD Charts</h2>
@@ -138,7 +140,7 @@
       </div>
     </section>
 
-    <!-- Dynamic money management module -->
+    <!-- Money management -->
     <section class="mm-panel">
       <h2 class="section-heading" data-i18n="mm_heading">Money Management</h2>
       <div class="mm-grid">
@@ -166,9 +168,21 @@
       <p id="mm-restriction" class="mm-restriction"></p>
     </section>
 
-    <h2 class="section-heading" data-i18n="signals_heading">Latest Signals</h2>
+    <h2 class="section-heading" data-i18n="signals_heading">Active Signals</h2>
     <div id="signals" class="signals-grid" aria-live="polite"></div>
     <p id="empty-state" class="empty-state" data-i18n="no_signals" hidden>No signals published yet. Check back before the next session.</p>
+
+    <!-- Today's Results: closed signals history -->
+    <section id="results-section" class="results-section" hidden>
+      <button id="results-toggle" class="results-toggle" type="button">
+        <span data-i18n="results_heading">Today's Results</span>
+        <span id="results-total" class="results-total"></span>
+        <span id="results-caret" class="results-caret">▾</span>
+      </button>
+      <div id="results-body" class="results-body" hidden>
+        <div id="results-list" class="results-list"></div>
+      </div>
+    </section>
   </main>
 
   <footer class="site-footer">
