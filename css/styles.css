@@ -12,11 +12,11 @@
   --sell: #ff3d71;
   --accent: #00e5ff;
   --accent-2: #7c3aed;
-  --bsl: #ffb020;      /* amber/gold */
-  --ssl: #a855f7;      /* violet */
-  --ob-bull: #10b981;  /* emerald */
-  --ob-bear: #f43f5e;  /* crimson */
-  --fvg: #38bdf8;      /* electric blue */
+  --bsl: #ffb020;
+  --ssl: #a855f7;
+  --ob-bull: #10b981;
+  --ob-bear: #f43f5e;
+  --fvg: #38bdf8;
   --gold: #f0b90b;
   --radius: 14px;
   --glow-buy: 0 0 12px rgba(0, 229, 160, 0.55);
@@ -54,10 +54,7 @@ body {
 
 .header-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .brand { display: flex; align-items: center; gap: 12px; }
-.brand-logo {
-  font-size: 26px;
-  filter: drop-shadow(0 0 8px rgba(0,229,255,0.6));
-}
+.brand-logo { font-size: 26px; filter: drop-shadow(0 0 8px rgba(0,229,255,0.6)); }
 .brand h1 {
   font-size: 1.15rem;
   font-weight: 700;
@@ -166,7 +163,7 @@ main { flex: 1; padding: 24px 0 48px; display: flex; flex-direction: column; gap
 .sw-sl { background: var(--sell); box-shadow: 0 0 6px var(--sell); }
 .sw-tp { background: var(--buy); box-shadow: 0 0 6px var(--buy); }
 
-/* ---------- Money management panel (glassmorphism) ---------- */
+/* ---------- Money management panel ---------- */
 .mm-panel {
   background: var(--panel);
   backdrop-filter: blur(14px);
@@ -321,5 +318,36 @@ main { flex: 1; padding: 24px 0 48px; display: flex; flex-direction: column; gap
 
 .empty-state { text-align: center; color: var(--muted); padding: 48px 0; }
 
-.site-footer { border-top: 1px solid var(--panel-border); padding: 16px 0; }
+/* ---------- Footer ---------- */
+.site-footer { border-top: 1px solid var(--panel-border); padding: 20px 0 16px; }
+
+.footer-credit {
+  position: relative;
+  text-align: center;
+  padding-top: 18px;
+  margin-bottom: 12px;
+}
+.footer-credit::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  max-width: 70%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), var(--accent-2), transparent);
+  box-shadow: 0 0 8px rgba(0,229,255,0.4);
+}
+.credit-line {
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  background: linear-gradient(90deg, var(--accent), #b794f6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 6px rgba(0,229,255,0.25));
+}
+
 .site-footer p { color: var(--muted); font-size: 0.78rem; text-align: center; }
